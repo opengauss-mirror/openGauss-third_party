@@ -1,0 +1,12 @@
+--- libxml2-2.9.9/parser.c	2018-11-13 21:45:27.000000000 +0800
++++ libxml2-2.9.9/parser_bak.c	2020-02-21 18:08:51.000000000 +0800
+@@ -13898,7 +13898,8 @@
+     xmlFreeParserCtxt(ctxt);
+     newDoc->intSubset = NULL;
+     newDoc->extSubset = NULL;
+-    newDoc->oldNs = NULL;
++    if(doc != NULL)
++	newDoc->oldNs = NULL;
+     xmlFreeDoc(newDoc);
+ 
+     return(ret);

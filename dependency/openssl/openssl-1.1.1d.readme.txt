@@ -1,0 +1,27 @@
+===========================
+OpenSSL binarylib 编译指导
+===========================
+1、编译构建
+./build.sh -m build
+执行成功后分别生成install/comm和install/llt目录，两个目录的主要区别是使用的编译选项不同。生成install/comm目的是获取动态链接库，生成install/llt目的是获取静态库。
+注：为一次执行分别编译生成comm和llt的结果，config.ini中已将配置改为“binarylibs@openssl=comm llt”，编译时无需再修改。
+
+2、选取所需库文件
+./build.sh -m shrink
+执行成功后生成install_comm_dist目录，其中包含bin、include和lib三个子目录。
+
+3、将install_comm_dist目录下文件拷贝到binarylibs下对应目录。
+./build.sh -m dist
+至此已完成OpenSSL编译和文件拷贝。
+
+4、一键编译构建
+./build.sh -m all
+此命令可以代替上面3步实现一键编译构建并在最后清理过程文件。
+由于编译过程较长（大约5分钟），如果中间发生异常不易发现，建议按上述步骤分步执行。
+
+===========================
+OpenSSL 补丁添加方法
+===========================
+1、将patch文件放入当前文件所在目录，补丁命名应遵循开源软件使用规范。
+2、修改build.sh脚本，参考PATCHFILE参数配置添加patch文件，并在build_component()中添加对应patch命令。
+3、按照上述编译指导重新进行编译。

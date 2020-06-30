@@ -1,0 +1,86 @@
+diff -urN llvm-7.0.0.src/cmake/modules/AddLLVM.cmake llvm-7.0.0.src_new/cmake/modules/AddLLVM.cmake
+--- llvm-7.0.0.src/cmake/modules/AddLLVM.cmake	2018-08-01 15:51:55.000000000 +0800
++++ llvm-7.0.0.src_new/cmake/modules/AddLLVM.cmake	2020-04-18 17:31:25.260000000 +0800
+@@ -19,7 +19,7 @@
+       list(APPEND LLVM_COMPILE_FLAGS "/EHsc")
+     endif()
+   else()
+-    if(LLVM_COMPILER_IS_GCC_COMPATIBLE)
++    if(false)
+       list(APPEND LLVM_COMPILE_FLAGS "-fno-exceptions")
+     elseif(MSVC)
+       list(APPEND LLVM_COMPILE_DEFINITIONS _HAS_EXCEPTIONS=0)
+diff -urN llvm-7.0.0.src/include/llvm/Support/Compiler.h llvm-7.0.0.src_new/include/llvm/Support/Compiler.h
+--- llvm-7.0.0.src/include/llvm/Support/Compiler.h	2018-07-03 07:57:29.000000000 +0800
++++ llvm-7.0.0.src_new/include/llvm/Support/Compiler.h	2020-04-18 17:31:55.744000000 +0800
+@@ -394,7 +394,7 @@
+ /// \macro LLVM_THREAD_SANITIZER_BUILD
+ /// Whether LLVM itself is built with ThreadSanitizer instrumentation.
+ #if __has_feature(thread_sanitizer) || defined(__SANITIZE_THREAD__)
+-# define LLVM_THREAD_SANITIZER_BUILD 1
++# define LLVM_THREAD_SANITIZER_BUILD 0
+ #else
+ # define LLVM_THREAD_SANITIZER_BUILD 0
+ #endif
+diff -urN llvm-7.0.0.src/include/llvm/Support/ErrorHandling.h llvm-7.0.0.src_new/include/llvm/Support/ErrorHandling.h
+--- llvm-7.0.0.src/include/llvm/Support/ErrorHandling.h	2018-02-17 18:21:33.000000000 +0800
++++ llvm-7.0.0.src_new/include/llvm/Support/ErrorHandling.h	2020-04-18 17:31:25.260000000 +0800
+@@ -78,6 +78,8 @@
+ LLVM_ATTRIBUTE_NORETURN void report_fatal_error(const Twine &reason,
+                                                 bool gen_crash_diag = true);
+ 
++LLVM_ATTRIBUTE_NORETURN void throw_fatal_error(const Twine &reason);
++
+ /// Installs a new bad alloc error handler that should be used whenever a
+ /// bad alloc error, e.g. failing malloc/calloc, is encountered by LLVM.
+ ///
+diff -urN llvm-7.0.0.src/lib/ExecutionEngine/RuntimeDyld/RuntimeDyld.cpp llvm-7.0.0.src_new/lib/ExecutionEngine/RuntimeDyld/RuntimeDyld.cpp
+--- llvm-7.0.0.src/lib/ExecutionEngine/RuntimeDyld/RuntimeDyld.cpp	2018-06-13 04:43:17.000000000 +0800
++++ llvm-7.0.0.src_new/lib/ExecutionEngine/RuntimeDyld/RuntimeDyld.cpp	2020-04-18 17:31:25.260000000 +0800
+@@ -761,7 +761,7 @@
+                   : MemMgr.allocateDataSection(Allocate, Alignment, SectionID,
+                                                Name, IsReadOnly);
+     if (!Addr)
+-      report_fatal_error("Unable to allocate section memory!");
++      throw_fatal_error("Unable to allocate section memory!");
+ 
+     // Zero-initialize or copy the data from the image
+     if (IsZeroInit || IsVirtual)
+diff -urN llvm-7.0.0.src/lib/Support/ErrorHandling.cpp llvm-7.0.0.src_new/lib/Support/ErrorHandling.cpp
+--- llvm-7.0.0.src/lib/Support/ErrorHandling.cpp	2018-04-29 08:45:03.000000000 +0800
++++ llvm-7.0.0.src_new/lib/Support/ErrorHandling.cpp	2020-04-18 17:31:25.260000000 +0800
+@@ -123,9 +123,33 @@
+   // files registered with RemoveFileOnSignal.
+   sys::RunInterruptHandlers();
+ 
+-  exit(1);
++  _exit(1);
+ }
+ 
++void llvm::throw_fatal_error(const Twine &reason)
++{
++	const Twine &Reason = Twine(reason);
++	if (ErrorHandler) {
++	  ErrorHandler(ErrorHandlerUserData, Reason.str(), true);
++	} else {
++	  // Blast the result out to stderr.  We don't try hard to make sure this
++	  // succeeds (e.g. handling EINTR) and we can't use errs() here because
++	  // raw ostreams can call report_fatal_error.
++	  SmallVector<char, 64> Buffer;
++	  raw_svector_ostream OS(Buffer);
++	  OS << "LLVM ERROR: " << Reason << "\n";
++	  StringRef MessageStr = OS.str();
++	  ssize_t written = ::write(2, MessageStr.data(), MessageStr.size());
++	  (void)written; // If something went wrong, we deliberately just give up.
++	}
++	
++	// If we reached here, we are failing ungracefully. Run the interrupt handlers
++	// to make sure any special cleanups get done, in particular that we remove
++	// files registered with RemoveFileOnSignal.
++	sys::RunInterruptHandlers();
++	throw std::bad_alloc(); 
++ }
++
+ void llvm::install_bad_alloc_error_handler(fatal_error_handler_t handler,
+                                            void *user_data) {
+ #if LLVM_ENABLE_THREADS == 1

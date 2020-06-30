@@ -1,0 +1,15 @@
+diff -uprN libedit-20160903-3.1-old/src/terminal.c libedit-20160903-3.1/src/terminal.c
+--- libedit-20160903-3.1-old/src/terminal.c	2016-09-03 21:48:30 +0800
++++ libedit-20160903-3.1/src/terminal.c	2017-07-14 14:56:21 +0800
+@@ -682,8 +682,9 @@ terminal_overwrite(EditLine *el, const w
+ 				/* force the wrap to avoid the "magic"
+ 				 * situation */
+ 				wchar_t c;
+-				if ((c = el->el_display[el->el_cursor.v]
+-				    [el->el_cursor.h]) != '\0') {
++				if (el->el_display[el->el_cursor.v] && 
++					((c = el->el_display[el->el_cursor.v]
++				    [el->el_cursor.h]) != '\0')) {
+ 					terminal_overwrite(el, &c, (size_t)1);
+ 					while (el->el_display[el->el_cursor.v]
+ 					    [el->el_cursor.h] == MB_FILL_CHAR)

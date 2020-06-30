@@ -1,0 +1,11 @@
++++ parser.c	2020-01-08 14:58:41.419529405 -0500
+@@ -13898,7 +13898,8 @@
+     xmlFreeParserCtxt(ctxt);
+     newDoc->intSubset = NULL;
+     newDoc->extSubset = NULL;
+-    newDoc->oldNs = NULL;
++    if(doc != NULL)
++        newDoc->oldNs = NULL;
+     xmlFreeDoc(newDoc);
+ 
+     return(ret);

@@ -1,0 +1,106 @@
+diff -uparN libedit-20160903-3.1_old/src/el.c libedit-20160903-3.1/src/el.c
+--- libedit-20160903-3.1_old/src/el.c	2016-09-03 09:48:03.000000000 -0400
++++ libedit-20160903-3.1/src/el.c	2020-01-05 22:19:39.852033854 -0500
+@@ -598,7 +598,7 @@ el_source(EditLine *el, const char *fnam
+ /* el_resize():
+  *	Called from program when terminal is resized
+  */
+-void
++int
+ el_resize(EditLine *el)
+ {
+ 	int lins, cols;
+@@ -609,10 +609,16 @@ el_resize(EditLine *el)
+ 	(void) sigprocmask(SIG_BLOCK, &nset, &oset);
+ 
+ 	/* get the correct window size */
+-	if (terminal_get_size(el, &lins, &cols))
+-		terminal_change_size(el, lins, cols);
++	if (terminal_get_size(el, &lins, &cols)) {
++		if (terminal_change_size(el, lins, cols) == -1) {
++			(void)fprintf(stdout, "WARNING: libedit had some internal error in terminal_change_size.\n");
++			(void) sigprocmask(SIG_SETMASK, &oset, NULL);
++			return -1;
++		}
++	}
+ 
+ 	(void) sigprocmask(SIG_SETMASK, &oset, NULL);
++	return 0;
+ }
+ 
+ 
+diff -uparN libedit-20160903-3.1_old/src/histedit.h libedit-20160903-3.1/src/histedit.h
+--- libedit-20160903-3.1_old/src/histedit.h	2016-09-03 09:48:03.000000000 -0400
++++ libedit-20160903-3.1/src/histedit.h	2020-01-05 21:50:29.034266739 -0500
+@@ -170,7 +170,7 @@ int		el_source(EditLine *, const char *)
+  * is set this is done automatically otherwise it is the responsibility
+  * of the application
+  */
+-void		 el_resize(EditLine *);
++int		 el_resize(EditLine *);
+ 
+ /*
+  * User-defined function interface.
+diff -uparN libedit-20160903-3.1_old/src/read.c libedit-20160903-3.1/src/read.c
+--- libedit-20160903-3.1_old/src/read.c	2016-09-03 09:48:03.000000000 -0400
++++ libedit-20160903-3.1/src/read.c	2020-01-05 21:51:32.707847479 -0500
+@@ -423,25 +423,30 @@ el_wgetc(EditLine *el, wchar_t *cp)
+ 	return num_read;
+ }
+ 
+-libedit_private void
++libedit_private int
+ read_prepare(EditLine *el)
+ {
++	int rc;
+ 	if (el->el_flags & HANDLE_SIGNALS)
+ 		sig_set(el);
+ 	if (el->el_flags & NO_TTY)
+-		return;
++		return 0;
+ 	if ((el->el_flags & (UNBUFFERED|EDIT_DISABLED)) == UNBUFFERED)
+ 		tty_rawmode(el);
+ 
+ 	/* This is relatively cheap, and things go terribly wrong if
+ 	   we have the wrong size. */
+-	el_resize(el);
++	rc = el_resize(el);
++	if (rc < 0) {
++		return rc;
++	}
+ 	re_clear_display(el);	/* reset the display stuff */
+ 	ch_reset(el);
+ 	re_refresh(el);		/* print the prompt */
+ 
+ 	if (el->el_flags & UNBUFFERED)
+ 		terminal__flush(el);
++	return 0;
+ }
+ 
+ libedit_private void
+@@ -511,8 +516,11 @@ el_wgets(EditLine *el, int *nread)
+ 	}
+ #endif /* FIONREAD */
+ 
+-	if ((el->el_flags & UNBUFFERED) == 0)
+-		read_prepare(el);
++	if ((el->el_flags & UNBUFFERED) == 0) {
++		if (read_prepare(el) < 0) {
++			return NULL;
++		}
++	}
+ 
+ 	if (el->el_flags & EDIT_DISABLED) {
+ 		if ((el->el_flags & UNBUFFERED) == 0)
+diff -uparN libedit-20160903-3.1_old/src/read.h libedit-20160903-3.1/src/read.h
+--- libedit-20160903-3.1_old/src/read.h	2016-09-03 09:48:03.000000000 -0400
++++ libedit-20160903-3.1/src/read.h	2020-01-05 21:51:57.973962784 -0500
+@@ -37,7 +37,7 @@
+ 
+ libedit_private int		read_init(EditLine *);
+ libedit_private void		read_end(struct el_read_t *);
+-libedit_private void		read_prepare(EditLine *);
++libedit_private int		read_prepare(EditLine *);
+ libedit_private void		read_finish(EditLine *);
+ libedit_private int		el_read_setfn(struct el_read_t *, el_rfunc_t);
+ libedit_private el_rfunc_t	el_read_getfn(struct el_read_t *);

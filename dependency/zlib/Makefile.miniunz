@@ -1,0 +1,29 @@
+CC=cc
+# CFLAGS=-g -O0 -O -I../..
+CFLAGS=-O3 -fPIC -I../..
+ARFLAGS=rc
+AR=ar
+
+UNZ_OBJS = unzip.o ioapi.o 
+LIB_COMMON = libminiunz.a
+
+.c.o:
+	$(CC) -c $(CFLAGS) $*.c
+
+all: $(LIB_COMMON) 
+
+$(LIB_COMMON) :  $(UNZ_OBJS)
+	$(AR) $(ARFLAGS) $@ $(UNZ_OBJS)
+
+$(UNZ_OBJS):%.o:%.c
+	$(CC) -c $(CFLAGS) $*.c
+	# $(CC) $(CFLAGS) -O $@ -c $<
+
+install:
+	cp ioapi.h $(DESTDIR)/include/
+	cp unzip.h $(DESTDIR)/include/
+	cp libminiunz.a $(DESTDIR)/lib/
+	chmod 644 $(DESTDIR)/include/ioapi.h $(DESTDIR)/include/unzip.h $(DESTDIR)/lib/libminiunz.a
+
+clean:
+	/bin/rm -f *.o *.a

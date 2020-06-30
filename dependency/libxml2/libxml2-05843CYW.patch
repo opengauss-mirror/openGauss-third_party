@@ -1,0 +1,10 @@
+--- libxml2-2.9.9/xmlschemas.c	2018-11-13 21:45:27.000000000 +0800
++++ libxml2-2.9.9/xmlschemas_bak.c	2020-02-21 18:04:11.000000000 +0800
+@@ -28111,7 +28111,6 @@
+     vctxt->nberrors = 0;
+     vctxt->depth = -1;
+     vctxt->skipDepth = -1;
+-    vctxt->xsiAssemble = 0;
+     vctxt->hasKeyrefs = 0;
+ #ifdef ENABLE_IDC_NODE_TABLES_TEST
+     vctxt->createIDCNodeTables = 1;

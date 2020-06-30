@@ -1,0 +1,12 @@
+--- libxml2-2.9.9/parser.c	2020-02-24 16:44:21.000000000 +0800
++++ libxml2-2.9.9/parser_bak.c	2020-02-24 16:41:27.000000000 +0800
+@@ -2626,8 +2626,7 @@
+     else
+         c = 0;
+     while ((c != 0) && (c != end) && /* non input consuming loop */
+-	   (c != end2) && (c != end3) &&
+-           (ctxt->instate != XML_PARSER_EOF)) {
++	   (c != end2) && (c != end3)) {
+ 
+ 	if (c == 0) break;
+         if ((c == '&') && (str[1] == '#')) {

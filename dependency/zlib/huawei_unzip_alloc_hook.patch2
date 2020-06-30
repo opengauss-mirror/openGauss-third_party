@@ -1,0 +1,22 @@
+--- unzip.h.orig	2012-07-09 07:34:08.000000000 +0800
++++ unzip.h.new	2018-04-13 09:48:55.926426216 +0800
+@@ -429,6 +429,19 @@
+ extern int ZEXPORT unzSetOffset (unzFile file, uLong pos);
+ 
+ 
++/* memory manager api */
++typedef voidp (* malloc_pf) (size_t);
++typedef void  (* free_pf) (voidp);
++
++typedef struct unz_memfunc_s
++{
++	malloc_pf  m_malloc;
++	free_pf    m_free;
++} unz_memfunc;
++
++extern int ZEXPORT unz_set_memfuncs OF ((const unz_memfunc* memfunc));
++
++
+ 
+ #ifdef __cplusplus
+ }
