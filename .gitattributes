@@ -1,2 +1,0 @@
-dependency/boost/boost_1_71_0.tar.gz filter=lfs diff=lfs merge=lfs -text
-dependency/protobuf/google-protobuf_3.7.1_bin.zip filter=lfs diff=lfs merge=lfs -text
