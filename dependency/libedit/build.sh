@@ -33,6 +33,8 @@ LOG_FILE=${SCRIPT_PATH}/${BUILD_TARGET}.log
 
 BUILD_FAILED=1
 FORMART_SIZE=100
+LOGIC_CPU_NUMBER=$(cat /proc/cpuinfo | grep processor | wc -l)
+MAKE_JOBS=$(($LOGIC_CPU_NUMBER * 2))
 
 #######################################################################
 ## print help information
@@ -93,11 +95,11 @@ function patch_for_build() {
         level=$1
         file=$2
         item=$3
-        patch -${level} ${file} ${item} >> ${LOG_FILE} 2>&1
+        patch -N -${level} ${file} ${item} >> ${LOG_FILE} 2>&1
     else
         level=$1
         item=$2
-        patch -${level} < ${item} >> ${LOG_FILE} 2>&1
+        patch -N -${level} < ${item} >> ${LOG_FILE} 2>&1
     fi
 
     log_process_done
@@ -119,6 +121,7 @@ function build_component() {
 
     patch_for_build p0 ${SCRIPT_PATH}/${SOURCE_CODE_PATH}/src/terminal.c ${SCRIPT_PATH}/huawei_fix_core_while_move_cursor_in_long_history_sql.patch
     patch_for_build p1 ${SCRIPT_PATH}/huawei_fix_core_while_memory_alloc_failed_gsql.patch
+    patch_for_build p2 ${SCRIPT_PATH}/${SOURCE_CODE_PATH}/src/filecomplete.c ${SCRIPT_PATH}/huawei_fix_gsql_tab_complete_escape_problem.patch
 
     for COMPILE_TYPE in ${COMPLIE_TYPE_LIST}; do
         log "[Notice] double-conversion Begin configure..."
@@ -156,7 +159,7 @@ function build_component() {
         log "[Notice] double-conversion End configure"
 
         log_process "[Notice] double-conversion using \"${COMPILE_TYPE}\" Begin make"
-        make -j >> ${BUILD_LOG_FILE} 2>&1
+        make -j${MAKE_JOBS} >> ${BUILD_LOG_FILE} 2>&1
         if [ $? -ne 0 ]; then
             die "double-conversion make failed."
         fi

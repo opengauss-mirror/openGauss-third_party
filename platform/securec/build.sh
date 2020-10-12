@@ -84,7 +84,7 @@ die() {
 #######################################################################
 function build_component() {
     cd ${LOCAL_DIR}
-    unzip ${ZIP_FILE_NAME}
+    unzip -o ${ZIP_FILE_NAME}
     cp MakefileCustom ${LOCAL_DIR}/${SOURCE_CODE_PATH}/src
     cd ${LOCAL_DIR}/${SOURCE_CODE_PATH}/src
     if [ $? -ne 0 ]; then

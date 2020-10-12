@@ -85,6 +85,7 @@ function print_help() {
 #######################################################################
 function build_component() {
     cd ${LOCAL_DIR}
+    [ -e ${SOURCE_CODE_PATH} ] && rm -rf ${SOURCE_CODE_PATH}
     tar -xvf ${TAR_FILE_NAME}
 
     cd ${LOCAL_DIR}/${SOURCE_CODE_PATH}
@@ -92,7 +93,7 @@ function build_component() {
         die "[Error] change dir to ${LOCAL_DIR}/${SOURCE_CODE_PATH} failed."
     fi
     log "[Notice] add patch..."
-    patch -p1 < ${LOCAL_DIR}/huawei_obs_new_alt_new.patch
+    patch -Np1 < ${LOCAL_DIR}/huawei_obs_new_alt_new.patch
     for COMPILE_TYPE in ${COMPLIE_TYPE_LIST}; do
         log "[Notice] obs Begin configure..."
         case "${COMPILE_TYPE}" in

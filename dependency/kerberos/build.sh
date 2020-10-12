@@ -89,7 +89,7 @@ function build_component() {
     tar -xvf ${TAR_FILE_NAME}
 
     cd ${LOCAL_DIR}/${SOURCE_CODE_PATH}
-    patch -p1 < ../${PATCHFILE}
+    patch -Np1 < ../${PATCHFILE}
 
     mv src/util/et/libcom_err.exports src/util/et/libcom_err_gauss.exports
     mv src/lib/crypto/libk5crypto.exports src/lib/crypto/libk5crypto_gauss.exports

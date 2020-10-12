@@ -167,13 +167,13 @@ function build_component() {
         case "${COMPILE_TYPE}" in
             comm)
                 log "[Notice] patching unzip.h"
-                patch unzip.h huawei_unzip_alloc_hook.patch2
+                patch -N unzip.h huawei_unzip_alloc_hook.patch2
                 if [ $? -ne 0 ]; then
                     die "failed to patch unzip.h for memory hook."
                 fi
 
                 log "[Notice] patching unzip.c"
-                patch unzip.c huawei_unzip_alloc_hook.patch
+                patch -N unzip.c huawei_unzip_alloc_hook.patch
                 if [ $? -ne 0 ]; then
                     die "failed to patch unzip.c for memory hook."
                 fi

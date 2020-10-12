@@ -28,6 +28,8 @@ LOG_FILE=${SCRIPT_PATH}/${BUILD_TARGET}.log
 
 BUILD_FAILED=1
 FORMART_SIZE=100
+LOGIC_CPU_NUMBER=$(cat /proc/cpuinfo | grep processor | wc -l)
+MAKE_JOBS=$(($LOGIC_CPU_NUMBER * 2))
 
 #######################################################################
 ## print help information
@@ -87,7 +89,7 @@ function patch_for_build() {
     item=$2
 
     log_process "[Notice] ${item} patching... "
-    patch -${level} < ${item} >> ${LOG_FILE} 2>&1
+    patch -N -${level} < ${item} >> ${LOG_FILE} 2>&1
     log_process_done
 }
 
@@ -115,7 +117,7 @@ function build_component() {
                 ;;
             llt)
                 mkdir -p ${SCRIPT_PATH}/install_llt
-                if [ ${PLAT_FORM_STR} = "openeuler_aarch64" ]; then
+                if [ ${PLAT_FORM_STR} = "openeuler_aarch64" ] || [ ${PLAT_FORM_STR} = "openeuler_x86_64" ] || [ ${PLAT_FORM_STR} = "euleros2.0_sp8_aarch64" ] || [ ${PLAT_FORM_STR} = "neokylin_aarch64" ] || [ ${PLAT_FORM_STR} = "kylin_aarch64" ]; then
                     ./configure CFLAGS='-fPIC' --prefix=${SCRIPT_PATH}/install_llt
                 else
                     ./configure --prefix=${SCRIPT_PATH}/install_llt
@@ -129,7 +131,7 @@ function build_component() {
                 ;;
             comm)
                 mkdir -p ${SCRIPT_PATH}/install_comm
-                if [ ${PLAT_FORM_STR} = "openeuler_aarch64" ]; then
+                if [ ${PLAT_FORM_STR} = "openeuler_aarch64" ] || [ ${PLAT_FORM_STR} = "openeuler_x86_64" ] || [ ${PLAT_FORM_STR} = "euleros2.0_sp8_aarch64" ] || [ ${PLAT_FORM_STR} = "neokylin_aarch64" ] || [ ${PLAT_FORM_STR} = "kylin_aarch64" ]; then
                     ./configure CFLAGS='-fPIC' --prefix=${SCRIPT_PATH}/install_comm
                 else
                     ./configure --prefix=${SCRIPT_PATH}/install_comm
@@ -148,7 +150,7 @@ function build_component() {
         log "[Notice] c-ares End configure"
 
         log_process "[Notice] c-ares using \"${COMPILE_TYPE}\" Begin make"
-        make -j >> ${BUILD_LOG_FILE} 2>&1
+        make -j${MAKE_JOBS} >> ${BUILD_LOG_FILE} 2>&1
         if [ $? -ne 0 ]; then
             die "c-ares make failed."
         fi

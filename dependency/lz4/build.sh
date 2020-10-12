@@ -30,6 +30,8 @@ SOURCE_CODE_PATH=lz4-1.9.2
 
 LOG_FILE=${LOCAL_DIR}/build_lz4.log
 BUILD_FAILED=1
+LOGIC_CPU_NUMBER=$(cat /proc/cpuinfo | grep processor | wc -l)
+MAKE_JOBS=$(($LOGIC_CPU_NUMBER * 2))
 
 #######################################################################
 ## print help information
@@ -99,7 +101,7 @@ function build_component() {
     log "[Notice] begin apply patch to lz4 "
     cd lib/
     cp ../../huawei_lz4.patch ./
-    patch -p0 < huawei_lz4.patch
+    patch -Np0 < huawei_lz4.patch
     if [ $? -ne 0 ]; then
         die "[Error] apply patch failed."
     fi
@@ -127,9 +129,9 @@ function build_component() {
 
                 if [ "${COMPILE_TYPE}"X = "comm"X ]; then
                     sed -i '53a CFLAGS += -fPIC -Wl,-z,now -fstack-protector-all' Makefile
-                    make -j
+                    make -j${MAKE_JOBS}
                 else
-                    make -j
+                    make -j${MAKE_JOBS}
                 fi
                 ;;
             *)

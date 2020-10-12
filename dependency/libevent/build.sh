@@ -89,7 +89,7 @@ INSTALL_COMPOENT_PATH_NAME="${ROOT_DIR}/${COMPONENT_TYPE}/${PLAT_FORM_STR}/${COM
 function build_component() {
     cd ${LOCAL_DIR}
     tar -xvf ${TAR_FILE_NAME}
-    patch -p0 < ${PATCH_FILE_NAME}
+    patch -Np0 < ${PATCH_FILE_NAME}
 
     cd ${LOCAL_DIR}/${SOURCE_CODE_PATH}
     if [ $? -ne 0 ]; then

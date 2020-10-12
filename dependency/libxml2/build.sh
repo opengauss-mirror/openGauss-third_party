@@ -90,8 +90,8 @@ function build_component() {
     if [ $? -ne 0 ]; then
         die "[Error] change dir to $SRC_DIR failed."
     fi
-    patch -p1 < ../libxml2-05843BKG.patch
-    patch -p1 < ../libxml2-05843CYW.patch
+    patch -Np1 < ../libxml2-05843BKG.patch
+    patch -Np1 < ../libxml2-05843CYW.patch
     patch -p1 -R < ../libxml2-05843CXW.patch
     chmod +x configure
     for COMPILE_TYPE in ${COMPLIE_TYPE_LIST}; do

@@ -16,7 +16,6 @@ There are four directories,
 
 See the following command to build opensources to generate binarylibs directory
 which is used when building openGauss-server.
-After you git clone this reposity, git lfs pull is needed.
 We assume that you already have autoconf, gcc, gcc-c++ installed.
 Before you build our binarylibs, the following is required:
 ```
@@ -30,7 +29,7 @@ libtool
 Also, gcc 8.2.0 source code is needed, which shoud be put in buildtools/gcc/, whose file name may be gcc-8.2.0.tar.gz or gcc-8.2.0.zip,
 consider downloading it from [gcc-8.2.0.zip](https://github.com/gcc-mirror/gcc/archive/releases/gcc-8.2.0.zip) or [gcc-8.2.0.tar.gz](https://github.com/gcc-mirror/gcc/archive/releases/gcc-8.2.0.tar.gz)
 After all of above, you should change default python version to python3.x.
-For generating all of binarylibs in one steps
+For generating all of binarylibs in one steps:
 ```
 cd build
 sh build_all.sh
@@ -45,4 +44,16 @@ To generate binarylibs which you want as:
 cd dependency/${module}
 sh build.sh -m all
 ```
-The binarylibs will be installed on the same directory of openGauss-third_party, which name is binarylibs
+The binarylibs will be installed on the same directory of openGauss-third_party, which name is binarylibs.
+If some components build fail, you can check logs in:
+```
+openGauss-third_party/build
+openGauss-third_party/$module/build
+openGauss-third_party/$module/$components
+```
+And in order to continue compile remaining components, you can comment components which already compiled successfully in:
+```
+openGauss-third_party/buildtools/build/build_buildtools.sh
+openGauss-third_party/dependency/build/build_dependency.sh
+openGauss-third_party/platform/build/build_platform.sh
+```

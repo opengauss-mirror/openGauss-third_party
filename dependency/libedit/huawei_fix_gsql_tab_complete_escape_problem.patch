@@ -1,0 +1,18 @@
+diff -uparN libedit-20190324-3.1_old/src/filecomplete.c libedit-20190324-3.1/src/filecomplete.c
+--- libedit-20190324-3.1_old/src/filecomplete.c 2018-05-26 02:09:38.000000000 +0800
++++ libedit-20190324-3.1/src/filecomplete.c 2020-09-03 15:28:38.968481060 +0800
+@@ -650,7 +650,12 @@ fn_complete(EditLine *el,
+ 				 * it, unless we do filename completion and the
+ 				 * object is a directory. Also do necessary escape quoting
+ 				 */
+-				char *escaped_completion = escape_filename(el, matches[0]);
++				char *escaped_completion = NULL;
++				if (!attempted_completion_function) {
++				    escaped_completion = escape_filename(el, matches[0]);
++				} else {
++				    escaped_completion = strdup(matches[0]);
++				}
+ 				if (escaped_completion == NULL)
+ 					goto out;
+ 				el_winsertstr(el,
+
