@@ -116,7 +116,7 @@ function build_component() {
     export PKG_CONFIG_PATH=${SCRIPT_PATH}/pkgconfig
     rm -rf ${SCRIPT_PATH}/${SOURCE_CODE_PATH} ${SCRIPT_PATH}/pkgconfig
     init_dependencies
-    unzip ${ZIP_FILE_NAME} > ${LOG_FILE}
+    unzip -o ${ZIP_FILE_NAME} > ${LOG_FILE}
     cd ${SCRIPT_PATH}/${SOURCE_CODE_PATH}
     for COMPILE_TYPE in ${COMPLIE_TYPE_LIST}; do
         log "[Notice] arrow Begin configure..."
@@ -193,7 +193,8 @@ function shrink_component() {
 
             comm)
                 mkdir -p ${SCRIPT_PATH}/install_comm_dist
-                mv ${SCRIPT_PATH}/install_comm/lib64 ${SCRIPT_PATH}/install_comm/lib
+                rsync -aH --rsync-path="mkdir -p ${SCRIPT_PATH}/install_${COMPILE_TYPE}/lib && rsync" --delete ${SCRIPT_PATH}/install_${COMPILE_TYPE}/lib64/ ${SCRIPT_PATH}/install_${COMPILE_TYPE}/lib
+                [ -e ${SCRIPT_PATH}/install_comm/lib64 ] && rm -rf ${SCRIPT_PATH}/install_comm/lib64
                 cp -r ${SCRIPT_PATH}/install_comm/* ${SCRIPT_PATH}/install_comm_dist
                 if [ $? -ne 0 ]; then
                     die "[Error] \"cp -r ${SCRIPT_PATH}/install_comm/* ${SCRIPT_PATH}/install_comm_dist\" failed."

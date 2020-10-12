@@ -83,7 +83,7 @@ INSTALL_COMPOENT_PATH_NAME="${ROOT_DIR}/${COMPONENT_TYPE}/${PLAT_FORM_STR}/${COM
 #######################################################################
 function build_component() {
     cd ${LOCAL_DIR}
-    unzip ${TAR_FILE_NAME}
+    unzip -o ${TAR_FILE_NAME}
 
     cd ${LOCAL_DIR}/${SOURCE_CODE_PATH}
     sh autogen.sh

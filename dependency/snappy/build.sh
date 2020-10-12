@@ -154,7 +154,8 @@ function build_component() {
             die "[Error] snappy make install failed."
         fi
         log_process_done
-        mv ${SCRIPT_PATH}/install_${COMPILE_TYPE}/lib64 ${SCRIPT_PATH}/install_${COMPILE_TYPE}/lib
+        rsync -aH --rsync-path="mkdir -p ${SCRIPT_PATH}/install_${COMPILE_TYPE}/lib && rsync" --delete ${SCRIPT_PATH}/install_${COMPILE_TYPE}/lib64/ ${SCRIPT_PATH}/install_${COMPILE_TYPE}/lib
+        [ -e ${SCRIPT_PATH}/install_${COMPILE_TYPE}/lib64 ] && rm -rf ${SCRIPT_PATH}/install_${COMPILE_TYPE}/lib64
         make clean
         log "[Notice] snappy build using \"${COMPILE_TYPE}\" has been finished"
     done

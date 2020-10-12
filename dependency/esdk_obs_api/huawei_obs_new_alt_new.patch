@@ -45,7 +45,7 @@ diff -uNr huaweicloud-sdk-c-obs-3.1.3/build/script/Provider/build_logAPI.sh huaw
 +
 +plat_form_str=$(sh ${root_dir}/../build/get_PlatForm_str.sh)
 +
-+if [ ${plat_form_str} = "openeuler_aarch64" ]; then
++if [ ${plat_form_str} = "openeuler_aarch64" ] || [ ${plat_form_str} = "neokylin_aarch64" ] || [ ${plat_form_str} = "kylin_aarch64" ]; then
 +    ./configure --prefix=$log4cpp_dir/install_comm CFLAGS='-fstack-protector -Wl,-z,relro,-z,now' CXXFLAGS='-fstack-protector -Wl,-z,relro,-z,now' --host=aarch64-linux-gnu --build=aarch64-gnu-linux --with-gnu-ld --with-pthreads --enable-static
 +else
 +    ./configure --prefix=$log4cpp_dir/install_comm CFLAGS='-fstack-protector -Wl,-z,relro,-z,now' CXXFLAGS='-fstack-protector -Wl,-z,relro,-z,now' --with-pthreads --enable-static

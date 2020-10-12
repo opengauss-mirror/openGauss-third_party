@@ -89,7 +89,7 @@ function build_component() {
     cd ${LOCAL_DIR}
     tar -xvf ${TAR_FILE_NAME}
 
-    patch -p0 < huawei_cJSON-1.7.11.patch
+    patch -Np0 < huawei_cJSON-1.7.11.patch
 
     cd ${LOCAL_DIR}/${SOURCE_CODE_PATH}
     if [ $? -ne 0 ]; then

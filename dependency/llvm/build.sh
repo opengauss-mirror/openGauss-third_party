@@ -26,6 +26,19 @@ LOG_FILE=${LOCAL_DIR}/build_llvm-7.0.0.log
 BUILD_PATH=build
 BUILD_FAILED=1
 
+MAKE_JOBS=$(($LOGIC_CPU_NUMBER * 2))
+
+# BUILD_TARGET
+cpu_bit=$(uname -p)
+if [ "$cpu_bit"x = "aarch64"x ]
+then
+	BUILD_TARGET="AArch64"
+elif [ "$cpu_bit"x = "x86_64"x ]
+then
+	BUILD_TARGET="X86"
+fi
+
+
 #######################################################################
 ## print help information
 #######################################################################
@@ -88,7 +101,7 @@ function build_component() {
     tar -xvf ${TAR_FILE_NAME}
 
     cd ${LOCAL_DIR}/${SOURCE_CODE_PATH}
-    patch -p1 < ../huawei_llvm.patch
+    patch -Np1 < ../huawei_llvm.patch
 
     if [ $? -ne 0 ]; then
         die "[Error] change dir to $SRC_DIR failed."
@@ -135,14 +148,14 @@ function build_component() {
         log "[Notice] llvm End configure"
 
         log "[Notice] llvm using \"${COMPILE_TYPE}\" Begin make"
-        make -j4
+        make -j${MAKE_JOBS}
         if [ $? -ne 0 ]; then
             die "llvm make failed."
         fi
         log "[Notice] llvm End make"
 
         log "[Notice] llvm using \"${COMPILE_TYPE}\" Begin make install"
-        make install
+        make install -j${MAKE_JOBS}
         if [ $? -ne 0 ]; then
             die "llvm make install failed."
         fi

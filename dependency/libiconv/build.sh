@@ -31,6 +31,8 @@ LOG_FILE=${SCRIPT_PATH}/${BUILD_TARGET}.log
 
 BUILD_FAILED=1
 FORMART_SIZE=100
+LOGIC_CPU_NUMBER=$(cat /proc/cpuinfo | grep processor | wc -l)
+MAKE_JOBS=$(($LOGIC_CPU_NUMBER * 2))
 
 #######################################################################
 ## print help information
@@ -134,7 +136,7 @@ function build_component() {
         log "[Notice] libiconv End configure"
 
         log_process "[Notice] libiconv using \"${COMPILE_TYPE}\" Begin make"
-        make -j >> ${BUILD_LOG_FILE} 2>&1
+        make -j${MAKE_JOBS} >> ${BUILD_LOG_FILE} 2>&1
         if [ $? -ne 0 ]; then
             die "libiconv make failed."
         fi

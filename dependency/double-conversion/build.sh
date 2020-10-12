@@ -28,6 +28,8 @@ LOG_FILE=${SCRIPT_PATH}/${BUILD_TARGET}.log
 
 BUILD_FAILED=1
 FORMART_SIZE=100
+LOGIC_CPU_NUMBER=$(cat /proc/cpuinfo | grep processor | wc -l)
+MAKE_JOBS=$(($LOGIC_CPU_NUMBER * 2))
 
 #######################################################################
 ## print help information
@@ -93,7 +95,7 @@ function build_component() {
     fi
 
     rm -rf ${SCRIPT_PATH}/${SOURCE_CODE_PATH}
-    unzip ${ZIP_FILE_NAME} > ${LOG_FILE}
+    unzip -o ${ZIP_FILE_NAME} > ${LOG_FILE}
     mkdir -p ${SCRIPT_PATH}/${SOURCE_CODE_PATH}/build
     cd ${SCRIPT_PATH}/${SOURCE_CODE_PATH}/build
 
@@ -135,7 +137,7 @@ function build_component() {
         log "[Notice] double-conversion End configure"
 
         log_process "[Notice] double-conversion using \"${COMPILE_TYPE}\" Begin make"
-        make -j >> ${BUILD_LOG_FILE} 2>&1
+        make -j${MAKE_JOBS} >> ${BUILD_LOG_FILE} 2>&1
         if [ $? -ne 0 ]; then
             die "double-conversion make failed."
         fi

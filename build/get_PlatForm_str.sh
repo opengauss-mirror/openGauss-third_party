@@ -19,10 +19,18 @@ function get_os_str() {
 
     cpu_arc=$(uname -p)
 
-    if [ "$os_name"x = "centos"x -a "$cpu_arc"x="x86_64"x ]; then
+    if [ "$os_name"x = "centos"x ] && [ "$cpu_arc"x = "x86_64"x ]; then
         os_str=centos7.6_x86_64
-    elif [ "$os_name"x = "openEuler"x -a "$cpu_arc"x="aarch64"x ]; then
+    elif [ "$os_name"x = "euleros"x ] && [ "$cpu_arc"x = "aarch64"x ]; then
+        os_str=euleros2.0_sp8_aarch64
+    elif [ "$os_name"x = "openEuler"x ] && [ "$cpu_arc"x = "aarch64"x ]; then
         os_str=openeuler_aarch64
+    elif [ "$os_name"x = "openEuler"x ] && [ "$cpu_arc"x = "x86_64"x ]; then
+        os_str=openeuler_x86_64
+    elif [ "$os_name"x = "neokylin"x ] && [ "$cpu_arc"x = "aarch64"x ]; then
+        os_str=neokylin_aarch64
+    elif [ "$os_name"x = "kylin"x ] && [ "$cpu_arc"x = "aarch64"x ]; then
+        os_str=kylin_aarch64
     else
         os_str="Failed"
     fi

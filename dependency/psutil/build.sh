@@ -90,7 +90,7 @@ function build_component() {
     if [ $? -ne 0 ]; then
         die "[Error] change dir to ${LOCAL_DIR}/${SOURCE_CODE_PATH} failed."
     fi
-	patch -p1 < ../CVE-2019-18874.patch || true
+	patch -Np1 < ../CVE-2019-18874.patch || true
 	chmod +x setup.py
 	
 	python_version=`python -V 2>&1|awk '{print $2}'|awk -F '.' '{print $1}'`

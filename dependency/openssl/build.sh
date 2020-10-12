@@ -90,8 +90,8 @@ function build_component() {
     tar -xvf ${TAR_FILE_NAME}
 
     cd ${LOCAL_DIR}/${SOURCE_CODE_PATH}
-    patch -p1 < ../${PATCHFILE}
-    patch -p1 < ../CVE-2020-1967.patch
+    patch -Np1 < ../${PATCHFILE}
+    patch -Np1 < ../CVE-2020-1967.patch
 
     if [ $? -ne 0 ]; then
         die "[Error] change dir to $SRC_DIR failed."
@@ -110,7 +110,7 @@ function build_component() {
                 rm -rf $LOCAL_DIR/install_llt
                 mkdir -p $LOCAL_DIR/install_llt
                 mkdir -p ${LOCAL_DIR}/install/${COMPILE_TYPE}
-                if [ ${PLAT_FORM_STR} = "openeuler_aarch64" ]; then
+                if [ ${PLAT_FORM_STR} = "openeuler_aarch64" ] || [ ${PLAT_FORM_STR} = "openeuler_x86_64" ] || [ ${PLAT_FORM_STR} = "euleros2.0_sp8_aarch64" ] || [ ${PLAT_FORM_STR} = "neokylin_aarch64" ] || [ ${PLAT_FORM_STR} = "kylin_aarch64" ]; then
                     log "[Notice] openssl configure string: ./config -fPIE -fPIC -pie -shared -fstack-protector-strong -g -O2 -Wl,-z,relro,-z,now --prefix=$LOCAL_DIR/install_llt --openssldir=$LOCAL_DIR/install_llt zlib -L=$LOCAL_DIR/../zlib/install_comm/lib enable-camellia enable-seed enable-rfc3779 enable-cms enable-md2 enable-rc5 enable-ssl3 enable-ssl3-method enable-weak-ssl-ciphers no-mdc2 no-ec2m enable-sm2 enable-sm4 "
                     ./config -fPIE -fPIC -pie -shared -fstack-protector-strong -g -O2 -Wl,-z,relro,-z,now --prefix=$LOCAL_DIR/install_llt --openssldir=$LOCAL_DIR/install_llt zlib -L$LOCAL_DIR/../zlib/install_comm/lib -I$LOCAL_DIR/../zlib/install_comm/include enable-camellia enable-seed enable-rfc3779 enable-cms enable-md2 enable-rc5 enable-ssl3 enable-ssl3-method enable-weak-ssl-ciphers no-mdc2 no-ec2m enable-sm2 enable-sm4 
                 else
@@ -128,7 +128,7 @@ function build_component() {
                 rm -rf $LOCAL_DIR/install_comm
                 mkdir -p $LOCAL_DIR/install_comm
                 mkdir -p ${LOCAL_DIR}/install/${COMPILE_TYPE}
-                if [ ${PLAT_FORM_STR} = "openeuler_aarch64" ]; then
+                if [ ${PLAT_FORM_STR} = "openeuler_aarch64" ] || [ ${PLAT_FORM_STR} = "openeuler_x86_64" ] || [ ${PLAT_FORM_STR} = "euleros2.0_sp8_aarch64" ] || [ ${PLAT_FORM_STR} = "neokylin_aarch64" ] || [ ${PLAT_FORM_STR} = "kylin_aarch64" ]; then
                     log "[Notice] openssl configure string: ./config -fPIE -fpIC -pie -shared -fstack-protector-strong -g -O2 -Wl,-z,relro,-z,now --prefix=$LOCAL_DIR/install_comm --openssldir=$LOCAL_DIR/install_comm zlib enable-camellia enable-seed enable-rfc3779 enable-sctp enable-cms enable-md2 enable-rc5 enable-ssl3 enable-ssl3-method enable-weak-ssl-ciphers no-mdc2 no-ec2m enable-sm2 enable-sm4 "
                     ./config -fPIE -fPIC -pie -shared -fstack-protector-strong -g -O2 -Wl,-z,relro,-z,now --prefix=$LOCAL_DIR/install_comm --openssldir=$LOCAL_DIR/install_comm zlib -L$LOCAL_DIR/../zlib/install_comm/lib -I$LOCAL_DIR/../zlib/install_comm/include enable-camellia enable-seed enable-rfc3779 enable-cms enable-md2 enable-rc5 enable-ssl3 enable-ssl3-method enable-weak-ssl-ciphers no-mdc2 no-ec2m enable-sm2 enable-sm4 
                 else

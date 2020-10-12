@@ -187,7 +187,7 @@ function build_component() {
                 mkdir ${LOCAL_DIR}/install_llt
                 mkdir -p ${LOCAL_DIR}/install/${COMPILE_TYPE}
                 ./bootstrap.sh
-                patch -p0 < ../huawei_thrift_0.13.0.patch
+                patch -Np0 < ../huawei_thrift_0.13.0.patch
                 ./configure --with-cpp --without-java --without-python --with-boost=$BOOST_HOME --with-openssl=$OPENSSL_HOME --with-go=no --with-qt4=no --with-qt5=no --with-zlib=no CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 -fPIC" LIBS="-lcrypto -ldl" --enable-static=yes --enable-shared=no --enable-tutorial=no --enable-tests=no --prefix=${LOCAL_DIR}/install_llt
                 ;;
             release_llt)
@@ -210,7 +210,7 @@ function build_component() {
                 mkdir ${LOCAL_DIR}/install_comm
                 mkdir -p ${LOCAL_DIR}/install/${COMPILE_TYPE}
                 ./bootstrap.sh
-                patch -p0 < ../huawei_thrift_0.13.0.patch
+                patch -Np0 < ../huawei_thrift_0.13.0.patch
                 ./configure --with-cpp --without-java --without-python --with-boost=$BOOST_HOME --with-openssl=$OPENSSL_HOME --with-go=no --with-qt4=no --with-qt5=no --with-zlib=no CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 -fPIC" LIBS="-lcrypto -ldl" --enable-static=yes --enable-shared=no --enable-tutorial=no --enable-tests=no --prefix=${LOCAL_DIR}/install_comm
                 ;;
             *)

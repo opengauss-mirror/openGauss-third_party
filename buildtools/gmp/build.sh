@@ -27,6 +27,8 @@ TAR_FILE_NAME=gmp-6.1.2.tar.xz
 SOURCE_CODE_PATH=gmp-6.1.2
 LOG_FILE=${LOCAL_DIR}/build_gmp.log
 BUILD_FAILED=1
+LOGIC_CPU_NUMBER=$(cat /proc/cpuinfo | grep processor | wc -l)
+MAKE_JOBS=$(($LOGIC_CPU_NUMBER * 2))
 
 #######################################################################
 ## print help information
@@ -130,7 +132,7 @@ function build_component() {
         log "[Notice] gmp End configure"
 
         log "[Notice] gmp using \"${COMPILE_TYPE}\" Begin make"
-        make -j >> ${LOG_FILE} 2>&1
+        make -j${MAKE_JOBS} >> ${LOG_FILE} 2>&1
         if [ $? -ne 0 ]; then
             die "gmp make failed."
         fi

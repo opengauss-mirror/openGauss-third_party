@@ -27,6 +27,8 @@ TAR_FILE_NAME=cmake-3.14.1.tar.gz
 SOURCE_CODE_PATH=cmake-3.14.1
 LOG_FILE=${LOCAL_DIR}/build_cmake.log
 BUILD_FAILED=1
+LOGIC_CPU_NUMBER=$(cat /proc/cpuinfo | grep processor | wc -l)
+MAKE_JOBS=$(($LOGIC_CPU_NUMBER * 2))
 
 #######################################################################
 ## print help information
@@ -130,14 +132,14 @@ function build_component() {
         log "[Notice] cmake End configure"
 
         log "[Notice] cmake using \"${COMPILE_TYPE}\" Begin make"
-        make -j
+        make -j${MAKE_JOBS}
         if [ $? -ne 0 ]; then
             die "cmake make failed."
         fi
         log "[Notice] cmake End make"
 
         log "[Notice] cmake using \"${COMPILE_TYPE}\" Begin make install"
-        make install -j
+        make install -j${MAKE_JOBS}
         if [ $? -ne 0 ]; then
             die "cmake make install failed."
         fi

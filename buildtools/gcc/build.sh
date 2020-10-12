@@ -28,6 +28,8 @@ ZIP_FILE_NAME=gcc-8.2.0.zip
 SOURCE_CODE_PATH=gcc-8.2.0
 LOG_FILE=${LOCAL_DIR}/build_libstd.log
 BUILD_FAILED=1
+LOGIC_CPU_NUMBER=$(cat /proc/cpuinfo | grep processor | wc -l)
+MAKE_JOBS=$(($LOGIC_CPU_NUMBER * 2))
 
 #######################################################################
 ## print help information
@@ -127,7 +129,7 @@ function build_component() {
     if [ -f ${TAR_FILE_NAME} ]; then
         tar -xvf ${TAR_FILE_NAME} -C ${LOCAL_DIR}/${SOURCE_CODE_PATH} --strip-components 1
     elif [ -f ${ZIP_FILE_NAME} ]; then
-        unzip ${ZIP_FILE_NAME} -d ${LOCAL_DIR}/${SOURCE_CODE_PATH} && f=(${LOCAL_DIR}/${SOURCE_CODE_PATH}/*) \
+        unzip -o ${ZIP_FILE_NAME} -d ${LOCAL_DIR}/${SOURCE_CODE_PATH} && f=(${LOCAL_DIR}/${SOURCE_CODE_PATH}/*) \
         && mv ${LOCAL_DIR}/${SOURCE_CODE_PATH}/*/* ${LOCAL_DIR}/${SOURCE_CODE_PATH}/ && rm -rf "${f[@]}"
     else
         log "[ERROR]:You shold download gcc source code and put in ${LOCAL_DIR}/"
@@ -180,14 +182,14 @@ function build_component() {
         log "[Notice] libstd End configure"
 
         log "[Notice] libstd using \"${COMPILE_TYPE}\" Begin make"
-        make -j
+        make -j${MAKE_JOBS}
         if [ $? -ne 0 ]; then
             die "libstd make failed."
         fi
         log "[Notice] libstd End make"
 
         log "[Notice] libstd using \"${COMPILE_TYPE}\" Begin make install"
-        make install -j
+        make install -j${MAKE_JOBS}
         if [ $? -ne 0 ]; then
             die "libstd make install failed."
         fi

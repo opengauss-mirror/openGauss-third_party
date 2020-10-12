@@ -110,8 +110,9 @@ function build_component() {
                 ;;
             comm)
                 python_version=`python -V 2>&1|awk '{print $2}'|awk -F '.' '{print $1}'`
-                if [ "${python_version}" = "3" ]; then
-                    log "[Notice] python version is 3.x, change python.jam to find python 3.x include directory."
+                python -c "import sys;exit(1) if sys.version_info >= (3,0) and sys.version_info < (3,8) else exit(0)"
+                if [ $? -eq 1 ]; then
+                    log "[Notice] python version is between 3.0 and < 3.8, change python.jam to find python 3.x include directory."
                     sed -i 's#includes ?= $(prefix)/include/python$(version) ;#includes ?= $(prefix)/include/python$(version)m ;#' ${LOCAL_DIR}/${SOURCE_CODE_PATH}/tools/build/src/tools/python.jam
                 fi
                 mkdir -p ${LOCAL_DIR}/install_${COMPILE_TYPE}
