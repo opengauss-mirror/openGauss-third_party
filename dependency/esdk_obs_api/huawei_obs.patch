@@ -1,0 +1,387 @@
+diff -Naru huaweicloud-sdk-c-obs-3.19.9.3/build/script/Provider/build_logAPI.sh huaweicloud-sdk-c-obs-3.19.9.3_bak/build/script/Provider/build_logAPI.sh
+--- huaweicloud-sdk-c-obs-3.19.9.3/build/script/Provider/build_logAPI.sh	2020-04-18 18:46:13.000000000 +0800
++++ huaweicloud-sdk-c-obs-3.19.9.3_bak/build/script/Provider/build_logAPI.sh	2020-12-18 10:54:49.976996402 +0800
+@@ -2,51 +2,39 @@
+ echo =========== compile log4cpp==================
+ ARCH=`uname -m`
+ open_src_path=`pwd`
+-log4cpp_dir="./../../../platform/eSDK_LogAPI_V2.1.10/log4cpp"
+-logAPI_dir="./../../../platform/eSDK_LogAPI_V2.1.10/eSDKLogAPI"
+-log4cpplib_dir=$log4cpp_dir/lib
+-
++log4cpp_dir=$open_src_path/../../../platform/eSDK_LogAPI_V2.1.10/log4cpp
++logAPI_dir=$open_src_path/../../../platform/eSDK_LogAPI_V2.1.10/eSDKLogAPI
++log4cpplib_dir=$log4cpp_dir/build
+ 
+ cd $log4cpp_dir
+ chmod 777 configure
++chmod 777 autogen.sh
+ aclocal -I m4
+-autoreconf -ivf
+-automake -a -c
+-if [ $# = 0 ]; then 
+-    if [ $BUILD_FOR_ARM = "true" ];then
+-        CXXFLAGS="-fstack-protector-all -Wl,-z,relro,-z,now -O2" ./configure --prefix=/usr/local/log4cpp --host=aarch64-linux-gnu --build=aarch64-gnu-linux --with-gnu-ld --with-pthreads
+-        lib_out=aarch64
+-    elif [ $BUILD_FOR_NDK_AARCH64 = "true" ];then
+-        CXXFLAGS="-fstack-protector-all -O2" LDFLAGS="-Wl,-z,relro,-z,now" ./configure --prefix=/usr/local/log4cpp --host=aarch64-linux-android CC=aarch64-linux-android-gcc --with-pthreads
+-        lib_out=ndk-aarch64
+-    else
+-        CXXFLAGS="-fstack-protector-all -Wl,-z,relro,-z,now -O2" ./configure --prefix=/usr/local/log4cpp --with-pthreads
+-        lib_out=linux_64
+-    fi
+-elif [ $1 = "BUILD_FOR_ARM" ]; then
+-    CXXFLAGS="-fstack-protector-all -Wl,-z,relro,-z,now -O2" ./configure --prefix=/usr/local/log4cpp --host=aarch64-linux-gnu --build=aarch64-gnu-linux --with-gnu-ld --with-pthreads
++./autogen.sh
++if [ $ARCH = "aarch64" ];then
++    CXXFLAGS="-fstack-protector-all -Wl,-z,relro,-z,now -O2" ./configure --prefix=$log4cpplib_dir --host=aarch64-linux-gnu --build=aarch64-gnu-linux --with-gnu-ld --with-pthreads
+     lib_out=aarch64
+-elif [ $1 = "BUILD_FOR_NDK_AARCH64" ]; then
+-    CXXFLAGS="-fstack-protector-all -O2" LDFLAGS="-Wl,-z,relro,-z,now" ./configure --prefix=/usr/local/log4cpp --host=aarch64-linux-android CC=aarch64-linux-android-gcc --with-pthreads
+-    lib_out=ndk-aarch64
++else
++    CXXFLAGS="-fstack-protector-all -Wl,-z,relro,-z,now -O2" ./configure --prefix=$log4cpplib_dir --with-pthreads
++    lib_out=linux_64
+ fi
+ 
++# disable rpath
++sed -i 's/hardcode_into_libs=yes/hardcode_into_libs=""/g' ./libtool
++sed -i 's/hardcode_libdir_flag_spec="\\\${wl}-rpath \\\${wl}\\\$libdir"/hardcode_libdir_flag_spec=""/g' ./libtool
++
+ make clean 
+ make -j16
+-make uninstall
+ make install
+ 
+ cd $open_src_path
+ 
+-mkdir -p $log4cpplib_dir
+-
+ mkdir -p $logAPI_dir/../C/$lib_out
+ if [ "$lib_out"x = "ndk-aarch64"x ];then
+-cp -af /usr/local/log4cpp/lib/liblog4cpp.a $logAPI_dir/../C/$lib_out
++cp -af $log4cpplib_dir/lib/liblog4cpp.a $logAPI_dir/../C/$lib_out
+ else
+-cp -af /usr/local/log4cpp/lib/liblog4cpp*.so* $logAPI_dir/../C/$lib_out
++cp -af $log4cpplib_dir/lib/liblog4cpp*.so* $logAPI_dir/../C/$lib_out
+ fi
+-
+ echo =========build the libeSDKLogAPI.so=========
+ cd $logAPI_dir
+ make clean
+diff -Naru huaweicloud-sdk-c-obs-3.19.9.3/platform/eSDK_LogAPI_V2.1.10/eSDKLogAPI/Makefile huaweicloud-sdk-c-obs-3.19.9.3_bak/platform/eSDK_LogAPI_V2.1.10/eSDKLogAPI/Makefile
+--- huaweicloud-sdk-c-obs-3.19.9.3/platform/eSDK_LogAPI_V2.1.10/eSDKLogAPI/Makefile	2020-04-18 18:46:13.000000000 +0800
++++ huaweicloud-sdk-c-obs-3.19.9.3_bak/platform/eSDK_LogAPI_V2.1.10/eSDKLogAPI/Makefile	2020-12-18 10:56:14.877996402 +0800
+@@ -1,25 +1,22 @@
+ ARCH = $(shell uname -m)
+-ifeq ($(ARCH), aarch64)
+-CXX = aarch64-linux-gnu-g++
+-else
+ CXX = g++
+-endif
+ CXXFLAGS = -fPIC -fstack-protector-all -Wl,-z,relro,-z,now
+ SHARED = -shared
+ TARGET = libeSDKLogAPI.so
+-INCLUDEDIR = -I ../../../platform/huaweisecurec/include -I ../output/include -I ../ -I ../vos -I../log4cpp
++INCLUDEDIR = -I ../../../../../../platform/Huawei_Secure_C/Huawei_Secure_C_V100R001C01SPC010B002/include -I ../output/include -I ../ -I ../vos -I../log4cpp
+ 
+-../../../platform/huaweisecurec/src/%.o : ../../../platform/huaweisecurec/src/%.c
+-	$(CXX) $(CXXFLAGS) $(INCLUDEDIR) -c -DENV_LINUX -DLOG4CPP_HAVE_SSTREAM $< -o $@ 
++../../../../../../platform/Huawei_Secure_C/Huawei_Secure_C_V100R001C01SPC010B002/src/%.o : ../../../../../../platform/Huawei_Secure_C/Huawei_Secure_C_V100R001C01SPC010B002/src/%.c
++	$(CXX) $(CXXFLAGS) $(INCLUDEDIR) -c -DENV_LINUX -DLOG4CPP_HAVE_SSTREAM $< -o $@
+ 
+ .cpp.o:
+ 	$(CXX) $(CXXFLAGS) $(INCLUDEDIR) -c -DENV_LINUX -DLOG4CPP_HAVE_SSTREAM $< -o $@
+ 
+-SOURCES = $(wildcard *.cpp) $(wildcard ./../vos/*.cpp) 
++SOURCES = $(wildcard *.cpp) $(wildcard ./../vos/*.cpp)
+ OBJS = $(patsubst %.cpp,%.o,$(SOURCES))
+-SECUREC_SOURCES = $(wildcard ../../../platform/huaweisecurec/src/*.c)
++SECUREC_SOURCES = $(wildcard ../../../../../../platform/Huawei_Secure_C/Huawei_Secure_C_V100R001C01SPC010B002/src/*.c)
+ SECUREC_OBJS = $(patsubst %.c,%.o,$(SECUREC_SOURCES))
+ OBJS += $(SECUREC_OBJS)
++OBJS := $(sort $(OBJS))
+ 
+ $(TARGET): $(OBJS)
+ ifeq ($(ARCH), aarch64)
+diff -Naru huaweicloud-sdk-c-obs-3.19.9.3/source/eSDK_OBS_API/eSDK_OBS_API_C++/GNUmakefile huaweicloud-sdk-c-obs-3.19.9.3_bak/source/eSDK_OBS_API/eSDK_OBS_API_C++/GNUmakefile
+--- huaweicloud-sdk-c-obs-3.19.9.3/source/eSDK_OBS_API/eSDK_OBS_API_C++/GNUmakefile	2020-04-18 18:46:13.000000000 +0800
++++ huaweicloud-sdk-c-obs-3.19.9.3_bak/source/eSDK_OBS_API/eSDK_OBS_API_C++/GNUmakefile	2020-12-18 10:56:39.844996402 +0800
+@@ -5,6 +5,13 @@
+ LIBOBS_VER_MINOR ?= 15
+ LIBOBS_VER := $(LIBOBS_VER_MAJOR).$(LIBOBS_VER_MINOR)
+ 
++top_builddir = ./../../../../../../
++# get  string from script get_PlatForm_str.sh
++PLAT_FORM_STR = $(shell sh $(top_builddir)/build/get_PlatForm_str.sh)
++ifeq ($(PLAT_FORM_STR), Failed)
++        exit 1;
++endif
++
+ #DEBUG=debug
+ # -----------------------------------------------------------------------------
+ # Determine verbosity.  VERBOSE_SHOW should be prepended to every command which
+@@ -81,15 +88,15 @@
+ endif
+ 
+ ifndef openssl_version
+-   openssl_version := openssl-1.1.1d
++   openssl_version := openssl-1.1.1g
+ endif
+ 
+ ifndef curl_version
+-   curl_version := curl-7.66.0
++   curl_version := curl-7.71.0
+ endif
+ 
+ ifndef nghttp2_version
+-#   nghttp2_version := nghttp2-1.32.0
++   nghttp2_version := nghttp2-1.41.0
+ endif
+ 
+ ifndef libxml2_version
+@@ -100,27 +107,27 @@
+ export LD_LIBRARY_PATH=./../../../build/script/Provider/build/${includePath}/${openssl_version}/lib
+ 
+ ifndef NGHTTP2_LIBS
+-#    NGHTTP2_LIBS := -L./../../../build/script/Provider/build/${includePath}/${nghttp2_version}/lib -lnghttp2
++    NGHTTP2_LIBS := -L${top_builddir}/dependency/nghttp2/install_comm/lib -lnghttp2
+ endif
+ 
+ ifndef NGHTTP2_CFLAGS
+-#    NGHTTP2_CFLAGS := -I./../../../build/script/Provider/build/${includePath}/${nghttp2_version}/include
++    NGHTTP2_CFLAGS := -I${top_builddir}/dependency/nghttp2/install_comm/include
+ endif
+ 
+ ifndef CURL_LIBS
+-    CURL_LIBS := -L./../../../build/script/Provider/build/${includePath}/${curl_version}/lib -lcurl
++    CURL_LIBS := -L${top_builddir}/dependency/libcurl/curl/lib -lcurl
+ endif
+ 
+ ifndef CURL_CFLAGS
+-    CURL_CFLAGS := -I./../../../build/script/Provider/build/${includePath}/${curl_version}/include
++    CURL_CFLAGS := -I${top_builddir}/dependency/libcurl/curl/include
+ endif
+ 
+ ifndef LIBXML2_LIBS
+-    LIBXML2_LIBS := -L./../../../build/script/Provider/build/${includePath}/${libxml2_version}/lib -lxml2 -lm -ldl 
++    LIBXML2_LIBS := -L${top_builddir}/dependency/libxml2/install_comm/lib -lxml2 -lm -ldl 
+ endif
+ 
+ ifndef LIBXML2_CFLAGS
+-    LIBXML2_CFLAGS := -I./../../../build/script/Provider/build/${includePath}/${libxml2_version}/include
++    LIBXML2_CFLAGS := -I${top_builddir}/dependency/libxml2/install_comm/include/libxml2
+ endif
+ 
+ ifndef LIBESDKLOGAPI_CFLAGS
+@@ -132,42 +139,38 @@
+ endif
+ 
+ ifndef LIBOPENSSL_LIBS
+-	LIBOPENSSL_LIBS := -L./../../../build/script/Provider/build/${includePath}/${openssl_version}/lib -lssl -lcrypto
++	LIBOPENSSL_LIBS := -L${top_builddir}/output/dependency/${PLAT_FORM_STR}/openssl/comm/lib -lssl -lcrypto
+ #LIBOPENSSL_LIBS := -L/usr/local/ssl/lib -lssl -lcrypto
+ #	LIBOPENSSL_LIBS := -L/arm/cross_compile/install/sysroot/lib64 -lssl -lcrypto
+ endif
+ 
+ ifndef LIBOPENSSL_CFLAGS
+-     LIBOPENSSL_CFLAGS := -I./../../../build/script/Provider/build/${includePath}/${openssl_version}/include
++     LIBOPENSSL_CFLAGS := -I${top_builddir}/output/dependency/${PLAT_FORM_STR}/openssl/comm/include
+ endif
+ 
+ ifndef LIBPCRE_LIBS
+-     LIBPCRE_LIBS := -L./../../../build/script/Provider/build/${includePath}/pcre-8.39/lib -lpcre
++     LIBPCRE_LIBS := -L${top_builddir}/dependency/pcre/install_comm/lib -lpcre
+ endif
+ 
+ ifndef LIBPCRE_CFLAGS
+-     LIBPCRE_CFLAGS := -I./../../../build/script/Provider/build/${includePath}/pcre-8.39/include/pcre
++     LIBPCRE_CFLAGS := -I${top_builddir}/dependency/pcre/install_comm/include
+ endif
+ 
+ # add libsecurec by jwx329074 2016.09.18
+ ifndef LIBSECUREC_LIBS
+-     LIBSECUREC_LIBS := -L./../../../platform/huaweisecurec/lib -lsecurec
++     LIBSECUREC_LIBS := -L${top_builddir}/output/platform/${PLAT_FORM_STR}/Huawei_Secure_C/Dynamic_Lib -lsecurec
+ endif
+ 
+ ifndef LIBSECUREC_CFLAGS
+-     LIBSECUREC_CFLAGS := -I./../../../platform/huaweisecurec/include
++     LIBSECUREC_CFLAGS := -I${top_builddir}/output/platform/${PLAT_FORM_STR}/Huawei_Secure_C/comm/include
+ endif
+ 
+ ifndef LIBICONV_CFLAGS
+-     ifdef BUILD_FOR_NDK_AARCH64
+-     LIBICONV_CFLAGS := -I./../../../build/script/Provider/build/${includePath}/iconv-1.15/include
+-     else
+-     LIBICONV_CFLAGS := -I./../../../third_party_groupware/eSDK_Storage_Plugins/libiconv-1.15/source/include
+-     endif
++     LIBICONV_CFLAGS := -I${top_builddir}/dependency/libiconv/install_comm/include
+ endif
+ 
+ ifndef LIBICONV_LIBS
+-     LIBICONV_LIBS := -L./../../../build/script/Provider/build/${includePath}/iconv-1.15/lib -liconv
++     LIBICONV_LIBS := -L${top_builddir}/dependency/libiconv/install_comm/lib -liconv
+ endif
+ 
+ # --------------------------------------------------------------------------
+diff -Naru huaweicloud-sdk-c-obs-3.19.9.3/source/eSDK_OBS_API/eSDK_OBS_API_C++/build.sh huaweicloud-sdk-c-obs-3.19.9.3_bak/source/eSDK_OBS_API/eSDK_OBS_API_C++/build.sh
+--- huaweicloud-sdk-c-obs-3.19.9.3/source/eSDK_OBS_API/eSDK_OBS_API_C++/build.sh	2020-04-18 18:46:13.000000000 +0800
++++ huaweicloud-sdk-c-obs-3.19.9.3_bak/source/eSDK_OBS_API/eSDK_OBS_API_C++/build.sh	2020-12-18 10:56:52.037996402 +0800
+@@ -7,6 +7,10 @@
+ # └─lib
+ #----------------------- variables --------------------#
+ #当前脚本所在路径
++ARCH=`uname -m`
++if [ $ARCH = "aarch64" ];then
++	export BUILD_FOR_ARM=true
++fi
+ G_CWD=`dirname $0`
+ pushd $G_CWD >/dev/null
+ G_CWD=`pwd`
+@@ -17,12 +21,27 @@
+ G_BUILD_DIR=${G_CWD}
+ g_PATH=build
+ 
+-G_SECUREC_PATH=$G_CWD/../../../platform/huaweisecurec
++#G_SECUREC_PATH=$G_CWD/../../../platform/huaweisecurec
+ 
+ #THIRTY_DIR目录
+ G_THIRTY_DIR=$G_CWD/../../../build/script/Provider
+ L_THIRTY_DIR=../../../build/script/Provider
+ 
++TOP_DIR=${G_CWD}/../../../../../../
++PLAT_FORM_STR=$(sh ${TOP_DIR}/build/get_PlatForm_str.sh)
++
++NGHTTP_DIR=${TOP_DIR}/dependency/nghttp2/install_comm
++LIBXML2_DIR=$${top_builddir}/dependency/libxml2/install_comm
++CURL_DIR=$${top_builddir}/output/dependency/${PLAT_FORM_STR}/libcurl/comm
++OPENSSL_DIR=$${top_builddir}/output/dependency/${PLAT_FORM_STR}/openssl/comm
++PCRE_DIR=${TOP_DIR}/dependency/pcre/install_comm
++LIBICONV_DIR=${TOP_DIR}/dependency/libiconv/install_comm
++#environment
++export LD_LIBRARY_PATH=$OPENSSL_DIR/lib:$CURL_DIR/lib:$LIBICONV_DIR/lib:$PCRE_DIR/lib:$NGHTTP_DIR/lib:$LIBXML2_DIR/lib:$LD_LIBRARY_PATH
++export LIBRARY_PATH=$OPENSSL_DIR/lib:$CURL_DIR/lib:$LIBICONV_DIR/lib:$PCRE_DIR/lib:$NGHTTP_DIR/lib:$LIBXML2_DIR/lib:$LIBRARY_PATH
++export C_INCLUDE_PATH=$OPENSSL_DIR/include:$CURL_DIR/include:$LIBICONV_DIR/include:$PCRE_DIR/include:$NGHTTP_DIR/include:$LIBXML2_DIR/include:$C_INCLUDE_PATH
++export CXX_INCLUDE_PATH=$OPENSSL_DIR/include:$CURL_DIR/include:$LIBICONV_DIR/include:$PCRE_DIR/include:$NGHTTP_DIR/include:$LIBXML2_DIR/include:$CXX_INCLUDE_PATH
++
+ #----------------------- functions ---------------------#
+ L_PACKAGE_NAME=$1
+ L_PRODUCT_TYPE=`echo $2 | tr A-Z a-z`
+@@ -33,13 +52,8 @@
+ 	export DEBUG=debug
+ fi
+ 
+-if [ "openssl-oldversion" == "$3" ];then
+-export openssl_version=openssl-1.0.2r
+-export curl_version=curl-7.64.1
+-else
+-export openssl_version=openssl-1.1.1d
+-export curl_version=curl-7.66.0
+-fi
++export openssl_version=openssl-1.1.1g
++export curl_version=curl-7.71.0
+ export libxml2_version=libxml2-2.9.9
+ #export nghttp2_version=nghttp2-1.32.0
+ # **************************************************************************** #
+@@ -71,47 +85,16 @@
+     fi
+     
+     cd ${L_TMP_THIRTY_DIR}
+-    if [ "build_ci" != "$L_PRODUCT" ];then
+-	    bash build_logAPI_staic.sh
+-		ifFailExitAndPrint $? "make failed."
+-		
+-        bash build_pcre.sh
+-        ifFailExitAndPrint $? "make failed."
+-#       read -p "Press any key to continue."
+-    
+-        bash build_openssl.sh
+-        ifFailExitAndPrint $? "make failed."
+-#       read -p "Press any key to continue."
+-
+-        bash build_iconv.sh
+-        ifFailExitAndPrint $? "make failed."
+-#       read -p "Press any key to continue."  
+-	   	
+-        bash build_libxml2.sh
+-        ifFailExitAndPrint $? "make failed."
+-#       read -p "Press any key to continue."
+-
+-#        bash build_nghttp2.sh
+-#		ifFailExitAndPrint $? "make failed."
+-
+-        bash build_curl.sh
+-        ifFailExitAndPrint $? "make failed."
+-#       read -p "Press any key to continue."
+-	fi	     
++    sh build_logAPI.sh
++ 
+     cd ${G_BUILD_DIR}
+ }
+ 
+ #----------编译third_party_groupware------------
+-#compileThirty L_THIRTY_DIR
++compileThirty L_THIRTY_DIR
+ 
+ #cd ${G_BUILD_DIR}
+ 
+-#----------编译libsecurec.so------------
+-pushd $G_SECUREC_PATH/src >/dev/null
+-make clean
+-
+-make
+-popd >/dev/null
+ make clean
+ make
+ 
+@@ -136,49 +119,5 @@
+ g_PATH=build-debug
+ fi
+ 
+-cp -f ${g_PATH}/include/* include
+-cp -f ${g_PATH}/lib/*.so lib
+-cp -f ./../../../platform/huaweisecurec/include/* include
+-cp -f ./../../../platform/huaweisecurec/lib/libsecurec.so lib
+-cp -af ./../../../platform/eSDK_LogAPI_V2.1.10/C/linux_64/libeSDKLogAPI.so lib
+-cp -af ./../../../platform/eSDK_LogAPI_V2.1.10/C/linux_64/liblog4cpp* lib 
+-cp -af ./../../../build/script/Provider/build/linux/${curl_version}/lib/* lib
+-cp -af ./../../../build/script/Provider/build/linux/${libxml2_version}/lib/* lib
+-cp -af ./../../../build/script/Provider/build/linux/${openssl_version}/lib/* lib 
+-cp -af ./../../../build/script/Provider/build/linux/pcre-8.39/lib/* lib 
+-cp -af ./../../../build/script/Provider/build/linux/iconv-1.15/lib/* lib 
+-#cp -f ./../../../build/script/Provider/build/linux/${nghttp2_version}/lib/* lib 
+-cp -f Makefile_obs demo/Makefile
+-cp -f OBS.ini lib
+-cp -f "./../../../source/eSDK_OBS_API/eSDK_OBS_API_C++_Demo/object_test.c" demo/object_test.c
+-cp -f "./../../../source/eSDK_OBS_API/eSDK_OBS_API_C++_Demo/demo.c" demo/demo.c
+-cp -f "./../../../source/eSDK_OBS_API/eSDK_OBS_API_C++_Demo/demo_common.c" demo/demo_common.c
+-cp -f "./../../../source/eSDK_OBS_API/eSDK_OBS_API_C++_Demo/demo_common.h" demo/demo_common.h
+-cp -f cert/client.pem demo/client.pem
+-cp -f cert/client.pem lib/client.pem
+-tar zcvf ${L_PACKAGE_NAME}.tgz demo include lib readme.txt
+-
+-#cp -f ${g_PATH}/include/* include_static
+-#cp -f ${g_PATH}/lib/*.a lib_static
+-#cp -f ./../../../platform/huaweisecurec/include/* include_static
+-#cp -f ./../../../platform/huaweisecurec/src/libsecurec.a lib_static
+-#cp -f ./../../../platform/eSDK_LogAPI_V2.1.10/eSDKLogAPI/libeSDKLogAPI.a lib_static
+-#cp -f /usr/local/log4cpp/lib/*.a lib_static
+-#cp -f ./../../../build/script/Provider/build/linux/${curl_version}/static_package/lib/* lib_static
+-#cp -f ./../../../build/script/Provider/build/linux/${libxml2_version}/static_package/lib/* lib_static
+-#cp -f ./../../../build/script/Provider/build/linux/${openssl_version}/static_package/lib/* lib_static
+-#cp -f ./../../../build/script/Provider/build/linux/pcre-8.39/static_package/lib/* lib_static 
+-#cp -f ./../../../build/script/Provider/build/linux/iconv-1.15/static_package/lib/* lib_static 
+-#cp -f ./../../../build/script/Provider/build/linux/${nghttp2_version}/static_package/lib/* lib_static 
+-#cp -f Makefile_static demo_static/Makefile
+-#cp -f OBS.ini lib_static
+-#cp -f "./../../../source/eSDK_OBS_API/eSDK_OBS_API_C++_Demo/object_test.c" demo_static/object_test.c
+-#cp -f "./../../../source/eSDK_OBS_API/eSDK_OBS_API_C++_Demo/demo.c" demo_static/demo.c
+-#cp -f "./../../../source/eSDK_OBS_API/eSDK_OBS_API_C++_Demo/demo_common.c" demo_static/demo_common.c
+-#cp -f "./../../../source/eSDK_OBS_API/eSDK_OBS_API_C++_Demo/demo_common.h" demo_static/demo_common.h
+-#cp -f cert/client.pem demo_static/client.pem
+-#cp -f cert/client.pem lib_static/client.pem
+-#tar zcvf ${L_PACKAGE_NAME}_STATIC.tgz demo_static include_static lib_static readme.txt
+-
+ rm -rf {demo,include,lib,"Log Collection Statement.txt"}
+ rm -rf {demo_static,include_static,lib_static,"Log Collection Statement.txt"}

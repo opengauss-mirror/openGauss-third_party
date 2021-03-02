@@ -1,0 +1,109 @@
+diff -Naru cJSON-1.7.13.bak/cJSON.c cJSON-1.7.13/cJSON.c
+--- cJSON-1.7.13.bak/cJSON.c	2020-05-15 15:18:46.223147953 +0800
++++ cJSON-1.7.13/cJSON.c	2020-05-15 15:27:52.431122492 +0800
+@@ -181,7 +181,7 @@
+ 
+ static internal_hooks global_hooks = { internal_malloc, internal_free, internal_realloc };
+ 
+-static unsigned char* cJSON_strdup(const unsigned char* string, const internal_hooks * const hooks)
++CJSON_PUBLIC(unsigned char*) cJSON_strdup(const unsigned char* string)
+ {
+     size_t length = 0;
+     unsigned char *copy = NULL;
+@@ -192,7 +192,7 @@
+     }
+ 
+     length = strlen((const char*)string) + sizeof("");
+-    copy = (unsigned char*)hooks->allocate(length);
++    copy = (unsigned char*)global_hooks.allocate(length);
+     if (copy == NULL)
+     {
+         return NULL;
+@@ -406,7 +406,7 @@
+         strcpy(object->valuestring, valuestring);
+         return object->valuestring;
+     }
+-    copy = (char*) cJSON_strdup((const unsigned char*)valuestring, &global_hooks);
++    copy = (char*) cJSON_strdup((const unsigned char*)valuestring);
+     if (copy == NULL)
+     {
+         return NULL;
+@@ -2020,7 +2020,7 @@
+     }
+     else
+     {
+-        new_key = (char*)cJSON_strdup((const unsigned char*)string, hooks);
++        new_key = (char*)cJSON_strdup((const unsigned char*)string);
+         if (new_key == NULL)
+         {
+             return false;
+@@ -2341,7 +2341,7 @@
+     {
+         cJSON_free(replacement->string);
+     }
+-    replacement->string = (char*)cJSON_strdup((const unsigned char*)string, &global_hooks);
++    replacement->string = (char*)cJSON_strdup((const unsigned char*)string);
+     replacement->type &= ~cJSON_StringIsConst;
+ 
+     return cJSON_ReplaceItemViaPointer(object, get_object_item(object, string, case_sensitive), replacement);
+@@ -2434,7 +2434,7 @@
+     if(item)
+     {
+         item->type = cJSON_String;
+-        item->valuestring = (char*)cJSON_strdup((const unsigned char*)string, &global_hooks);
++        item->valuestring = (char*)cJSON_strdup((const unsigned char*)string);
+         if(!item->valuestring)
+         {
+             cJSON_Delete(item);
+@@ -2484,7 +2484,7 @@
+     if(item)
+     {
+         item->type = cJSON_Raw;
+-        item->valuestring = (char*)cJSON_strdup((const unsigned char*)raw, &global_hooks);
++        item->valuestring = (char*)cJSON_strdup((const unsigned char*)raw);
+         if(!item->valuestring)
+         {
+             cJSON_Delete(item);
+@@ -2686,7 +2686,7 @@
+     newitem->valuedouble = item->valuedouble;
+     if (item->valuestring)
+     {
+-        newitem->valuestring = (char*)cJSON_strdup((unsigned char*)item->valuestring, &global_hooks);
++        newitem->valuestring = (char*)cJSON_strdup((unsigned char*)item->valuestring);
+         if (!newitem->valuestring)
+         {
+             goto fail;
+@@ -2694,7 +2694,7 @@
+     }
+     if (item->string)
+     {
+-        newitem->string = (item->type&cJSON_StringIsConst) ? item->string : (char*)cJSON_strdup((unsigned char*)item->string, &global_hooks);
++        newitem->string = (item->type&cJSON_StringIsConst) ? item->string : (char*)cJSON_strdup((unsigned char*)item->string);
+         if (!newitem->string)
+         {
+             goto fail;
+diff -Naru cJSON-1.7.13.bak/cJSON.h cJSON-1.7.13/cJSON.h
+--- cJSON-1.7.13.bak/cJSON.h	2020-05-15 15:18:46.223147953 +0800
++++ cJSON-1.7.13/cJSON.h	2020-05-15 15:26:56.351125107 +0800
+@@ -286,6 +286,7 @@
+ CJSON_PUBLIC(void *) cJSON_malloc(size_t size);
+ CJSON_PUBLIC(void) cJSON_free(void *object);
+ 
++CJSON_PUBLIC(unsigned char*) cJSON_strdup(const unsigned char* string);
+ #ifdef __cplusplus
+ }
+ #endif
+diff -Naru cJSON-1.7.13.bak/Makefile cJSON-1.7.13/Makefile
+--- cJSON-1.7.13.bak/Makefile	2020-05-15 15:18:46.223147953 +0800
++++ cJSON-1.7.13/Makefile	2020-05-15 15:26:56.351125107 +0800
+@@ -12,8 +12,8 @@
+ CJSON_SOVERSION = 1
+ UTILS_SOVERSION = 1
+ 
+-CJSON_SO_LDFLAG=-Wl,-soname=$(CJSON_LIBNAME).so.$(CJSON_SOVERSION)
+-UTILS_SO_LDFLAG=-Wl,-soname=$(UTILS_LIBNAME).so.$(UTILS_SOVERSION)
++CJSON_SO_LDFLAG=-Wl,-z,relro,-z,now,-soname=$(CJSON_LIBNAME).so.$(CJSON_SOVERSION)
++UTILS_SO_LDFLAG=-Wl,-z,relro,-z,now,-soname=$(UTILS_LIBNAME).so.$(UTILS_SOVERSION)
+ 
+ PREFIX ?= /usr/local
+ INCLUDE_PATH ?= include/cjson
