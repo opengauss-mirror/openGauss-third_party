@@ -1,13 +1,13 @@
-#! /bin/bash
+#!/bin/bash
 # Copyright (c) Huawei Technologies Co., Ltd. 2010-2018. All rights reserved.
 # description: the script that make install boost
-# date: 2020-01-04
-# version: 1.68.0
+# date: 2020-11-20
+# version: 1.72.0
 
 set -e
 
 #################################################
-cd boost_1_71_0
+cd boost_1_72_0
 rm -rf stage/*
 
 ################################################
