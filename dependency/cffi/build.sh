@@ -9,6 +9,7 @@ export TARGET_PATH=$(pwd)/../../output/dependency/install_tools_$PLATFORM
 export LD_LIBRARY_PATH=$TARGET_PATH:$LD_LIBRARY_PATH:/usr/lib64
 export PATH=$TARGET_PATH:$PATH
 export PYTHONPATH=$TARGET_PATH:$LIBRARY_PATH
+python_version=`python -V | awk -F ' ' '{print $2}' | awk -F '.' -v OFS='.' '{print $1,$2}'`
 TAR_SOURCE_FILE=cffi-1.13.2.tar.gz
 SOURCE_FILE=cffi-1.13.2
 tar zxvf $TAR_SOURCE_FILE
@@ -16,6 +17,6 @@ cd $SOURCE_FILE
 python setup.py build
 PYTHONHASHSEED=0 python setup.py install
 cp -r build/lib*/* $TARGET_PATH
-cp -r $TARGET_PATH/_cffi_backend.so $TARGET_PATH/_cffi_backend.so_UCS4
-
+mv $TARGET_PATH/_cffi_backend.*.so  $TARGET_PATH/_cffi_backend.so
+cp -r $TARGET_PATH/_cffi_backend.so $TARGET_PATH/_cffi_backend.so_UCS4_$python_version
 cp ./../_cffi_backend.py $TARGET_PATH/_cffi_backend.py

@@ -35,6 +35,7 @@ cd build
 mkdir install
 dir=$(pwd)
 
+rm -rf ${LOCAL_DIR}/install_*
 
 export BOOST_ROOT=${LOCAL_DIR}/../boost/install_comm
 export ZLIB_HOME=${ROOT_DIR}/output/dependency/${PLAT_FORM_STR}/zlib1.2.11/comm
@@ -53,6 +54,11 @@ sed -i "17a #include <cmath> " ../src/parquet/statistics.cc
 sed -i "471d" ../cmake_modules/ThirdpartyToolchain.cmake
 sed -i "472a set(DOUBLE_CONVERSION_INCLUDE_DIR "${DOUBLE_CONVERSION_HOME}/include")" ../cmake_modules/ThirdpartyToolchain.cmake
 sed -i "473a set(DOUBLE_CONVERSION_STATIC_LIB "${DOUBLE_CONVERSION_HOME}/lib/libdouble-conversion.a")" ../cmake_modules/ThirdpartyToolchain.cmake
+
+if [[ $PLAT_FORM_STR =~ "aarch64" ]];then
+    sed -i "24d" ../cmake_modules/SetupCxxFlags.cmake
+    sed -i "22d" ../cmake_modules/SetupCxxFlags.cmake
+fi
 APPEND_LDFLAGS+="-Wl,-z,relro,-z,now,-z,noexecstack -pie"
 APPEND_FLAGS+="-fstack-protector-strong"
 cmake .. -DCMAKE_BUILD_TYPE=release  -DARROW_PARQUET=ON  -DARROW_BUILD_TESTS=OFF  -DPARQUET_BUILD_EXAMPLES=OFF  -DPARQUET_BUILD_EXECUTABLES=OFF  -DARROW_WITH_BROTLI=ON -DARROW_WITH_LZ4=ON -DARROW_WITH_SNAPPY=ON -DARROW_WITH_ZLIB=ON -DARROW_WITH_ZSTD=ON -DARROW_BOOST_USE_SHARED=OFF  -DARROW_IPC=ON -DPARQUET_ARROW_LINKAGE=static -DCMAKE_INSTALL_PREFIX=${LOCAL_DIR}/install_comm -DCMAKE_CXX_FLAGS="-fPIC -std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 $APPEND_FLAGS $APPEND_LDFLAGS" -DCMAKE_C_FLAGS=" $APPEND_FLAGS $APPEND_LDFLAGS"  -DARROW_INSTALL_NAME_RPATH=OFF -DPTHREAD_LIBRARY="" 

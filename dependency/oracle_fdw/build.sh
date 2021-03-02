@@ -9,3 +9,17 @@
 set -e
 
 python $(pwd)/../../build/pull_open_source.py "oracle_fdw"  "ORACLE_FDW_2_1_0.zip" "05833BFB"
+
+LOCAL_PATH=${0}
+FIRST_CHAR=$(expr substr "$LOCAL_PATH" 1 1)
+if [ "$FIRST_CHAR" = "/" ]; then
+    LOCAL_PATH=${0}
+else
+    LOCAL_PATH="$(pwd)/${LOCAL_PATH}"
+fi
+LOCAL_DIR=$(dirname "${LOCAL_PATH}")
+ROOT_DIR="${LOCAL_DIR}/../../"
+TARGET_PATH=${ROOT_DIR}/output/dependency/oracle_fdw
+[ -d ${TARGET_PATH} ] && rm -rf ${TARGET_PATH}/*
+mkdir -pv ${TARGET_PATH}
+cp -r ${LOCAL_DIR}/* ${TARGET_PATH}

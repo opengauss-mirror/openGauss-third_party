@@ -148,13 +148,13 @@ sh build.sh >>../build/demo.log
 end_tm=$(date +%s%N)
 use_tm=$(echo $end_tm $start_tm | awk '{ print ($1 - $2) / 1000000000}' | xargs printf "%.2f")
 echo "[ipaddress] $use_tm"
-echo ---------------------------------enum34--------------------------------------------------
-start_tm=$(date +%s%N)
-cd $(pwd)/../enum34
-sh build.sh >>../build/demo.log
-end_tm=$(date +%s%N)
-use_tm=$(echo $end_tm $start_tm | awk '{ print ($1 - $2) / 1000000000}' | xargs printf "%.2f")
-echo "[enum34] $use_tm"
+#echo ---------------------------------enum34--------------------------------------------------
+#start_tm=$(date +%s%N)
+#cd $(pwd)/../enum34
+#sh build.sh >>../build/demo.log
+#end_tm=$(date +%s%N)
+#use_tm=$(echo $end_tm $start_tm | awk '{ print ($1 - $2) / 1000000000}' | xargs printf "%.2f")
+#echo "[enum34] $use_tm"
 
 #第一层依赖
 echo -------------------------------pycparser-------------------------------------------------
@@ -485,3 +485,27 @@ sh build.sh -m build >>../build/demo.log
 end_tm=$(date +%s%N)
 use_tm=$(echo $end_tm $start_tm | awk '{ print ($1 - $2) / 1000000000}' | xargs printf "%.2f")
 echo "[pljava] $use_tm"
+
+echo ---------------------------------------java-sdk-core-----------------------------------
+start_tm=$(date +%s%N)
+cd $(pwd)/../javasdkcore
+sh build.sh -m build >>../build/demo.log
+end_tm=$(date +%s%N)
+use_tm=$(echo $end_tm $start_tm | awk '{ print ($1 - $2) / 1000000000}' | xargs printf "%.2f")
+echo "[javasdkcore] $use_tm"
+
+echo ---------------------------------------mysql_fdw-----------------------------------
+start_tm=$(date +%s%N)
+cd $(pwd)/../mysql_fdw
+sh build.sh -m build >>../build/demo.log
+end_tm=$(date +%s%N)
+use_tm=$(echo $end_tm $start_tm | awk '{ print ($1 - $2) / 1000000000}' | xargs printf "%.2f")
+echo "[mysql_fdw] $use_tm"
+
+echo ---------------------------------------oracle_fdw-----------------------------------
+start_tm=$(date +%s%N)
+cd $(pwd)/../oracle_fdw
+sh build.sh -m build >>../build/demo.log
+end_tm=$(date +%s%N)
+use_tm=$(echo $end_tm $start_tm | awk '{ print ($1 - $2) / 1000000000}' | xargs printf "%.2f")
+echo "[oracle_fdw] $use_tm"
