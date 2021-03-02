@@ -83,10 +83,6 @@ class OPOperator():
         elif platform_str == 'openeuler_aarch64':
             binary_list.append(platform_str)
             binary_list.append('euleros2.0_sp8_aarch64')
-        elif platform_str == 'openeuler_x86_64':
-            binary_list.append(platform_str)
-        elif platform_str == 'kylin_aarch64':
-            binary_list.append(platform_str)
         else:
             print("[ERROR] Not supported platform type")
             assert False

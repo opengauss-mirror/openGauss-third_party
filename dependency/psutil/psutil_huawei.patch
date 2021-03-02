@@ -1,0 +1,20 @@
+--- psutil-5.7.0/setup.py	2020-02-19 01:45:01.000000000 +0800
++++ setup.py	2020-09-15 14:55:58.751196995 +0800
+@@ -248,7 +248,7 @@
+     ext = Extension(
+         'psutil._psutil_linux',
+         sources=sources + ['psutil/_psutil_linux.c'],
+-        define_macros=macros)
++        define_macros=macros,extra_link_args=['-Wl,-z,relro,-z,now'],extra_compile_args=["-fstack-protector-all"])
+ 
+ elif SUNOS:
+     macros.append(("PSUTIL_SUNOS", 1))
+@@ -282,7 +282,7 @@
+     posix_extension = Extension(
+         'psutil._psutil_posix',
+         define_macros=macros,
+-        sources=sources)
++        sources=sources,extra_link_args=['-Wl,-z,relro,-z,now'],extra_compile_args=["-fstack-protector-all"])
+     if SUNOS:
+         def get_sunos_update():
+             # See https://serverfault.com/q/524883

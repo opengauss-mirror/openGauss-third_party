@@ -1,0 +1,4 @@
+libasan.a filter=lfs diff=lfs merge=lfs -text
+liblsan.a filter=lfs diff=lfs merge=lfs -text
+libtsan.a filter=lfs diff=lfs merge=lfs -text
+libubsan.a filter=lfs diff=lfs merge=lfs -text

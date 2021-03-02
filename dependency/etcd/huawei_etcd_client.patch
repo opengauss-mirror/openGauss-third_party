@@ -1,0 +1,861 @@
+diff -Nur etcd-3.3.23-ciper/etcdclient/Makefile etcd-3.3.23/etcdclient/Makefile
+--- etcd-3.3.23-ciper/etcdclient/Makefile	1969-12-31 19:00:00.000000000 -0500
++++ etcd-3.3.23/etcdclient/Makefile	2020-11-23 14:55:18.348940518 -0500
+@@ -0,0 +1,65 @@
++BASE=$(shell pwd)
++top_builddir=$(BASE)/../../../../
++PLATFORM="$(bash ${top_builddir}/build/get_PlatForm_str.sh)"
++LIBOPENSSL_INCLUDE_PATH=$(top_builddir)/output/dependency/$PLATFORM/openssl/comm/include/
++LIBOPENSSL_LIB_PATH=$(top_builddir)/output/dependency/$PLATFORM/openssl/comm/lib/
++
++GOPATH=$(top_builddir)/dependency/etcd/etcd-3.3.23/
++GOFILES=$(etcd_client_proxy.go etcd_clientv3.go etcd_clientv2.go)
++
++VERSION = 1
++
++export GO111MODULE=off
++override CFLAGS += -fstack-protector-strong -Wl,-z,relro,-z,now
++
++ifneq "$(MAKECMDGOALS)" "clean"                                    
++  ifneq "$(MAKECMDGOALS)" "distclean"                           
++    ifneq "$(shell which g++ |grep hutaf_llt |wc -l)" "1"       
++      -include $(DEPEND)                                       
++    endif                                                       
++  endif
++endif
++
++override CC = gcc
++override CPPFLAGS := $(filter-out -fPIE, $(CPPFLAGS)) -fPIC
++override CFLAGS := $(filter-out -fPIE, $(CFLAGS)) -fPIC
++
++untar:
++	test -d $(GOPATH)/src || ln -s $(GOPATH)/vendor $(GOPATH)/src
++	test -d ${GOPATH}/vendor/github.com/coreos/etcd || mkdir ${GOPATH}/vendor/github.com/coreos/etcd \
++	&& ln -s ${GOPATH}/clientv3 ${GOPATH}/vendor/github.com/coreos/etcd/clientv3 \
++	&& ln -s ${GOPATH}/etcdserver ${GOPATH}/vendor/github.com/coreos/etcd/etcdserver \
++	&& ln -s ${GOPATH}/mvcc ${GOPATH}/vendor/github.com/coreos/etcd/mvcc \
++	&& ln -s ${GOPATH}/pkg ${GOPATH}/vendor/github.com/coreos/etcd/pkg \
++	&& ln -s ${GOPATH}/raft ${GOPATH}/vendor/github.com/coreos/etcd/raft \
++	&& ln -s ${GOPATH}/auth ${GOPATH}/vendor/github.com/coreos/etcd/auth \
++	&& test -d ${GOPATH}/vendor/go.etcd.io/etcd/pkg || mkdir -p ${GOPATH}/vendor/go.etcd.io/etcd/pkg \
++    && ln -s ${GOPATH}/pkg/fileutil ${GOPATH}/vendor/go.etcd.io/etcd/pkg/fileutil \
++	&& ln -s ${GOPATH}version ${GOPATH}/vendor/github.com/coreos/etcd/version
++
++.NOTPARALLEL:
++all: libclientv3.a
++
++libclientv3.a: untar
++	$(call tar_golang)
++	@GOPATH=${GOPATH} CGO_CFLAGS="-I$(LIBOPENSSL_INCLUDE_PATH)" CGO_LDFLAGS="-L$(LIBOPENSSL_LIB_PATH)" go build -v ${GOFLAGS} -buildmode=c-archive -o libclientv3.a $(GOFILES)
++
++GO ?= go
++PKG  := ./...
++
++.PHONY: check
++check:
++	@echo "gofmt (simplify)"
++	@! gofmt -s -d -l . 2>&1 | grep -vE '^\.git'
++	@echo "golint" 
++	@! golint $(PKG)  | grep -vE '^\.git'
++	@echo "check finish"
++
++install: libclientv3.a
++
++race: untar
++	@GOPATH=${GOPATH} go build -v -race -buildmode=c-archive -o libclientv3.a $(GOFILES)
++
++clean distclean maintainer-clean:
++	rm -rf libclientv3.a
++	rm -rf libclientv3.h
+diff -Nur etcd-3.3.23-ciper/etcdclient/etcd_client_proxy.go etcd-3.3.23/etcdclient/etcd_client_proxy.go
+--- etcd-3.3.23-ciper/etcdclient/etcd_client_proxy.go	1969-12-31 19:00:00.000000000 -0500
++++ etcd-3.3.23/etcdclient/etcd_client_proxy.go	2020-11-23 14:55:18.348940518 -0500
+@@ -0,0 +1,326 @@
++/*---------------------------------------------------------------------------------------
++ *
++ *      etcd_client_proxy.go
++ *      The etcd go clint adapter layer.
++ *
++ *  __  __ __   __  ___    ___
++ *  \ \/ / \ \ / / |   \  | _ )
++ *   >  <   \ V /  | |) | | _ \
++ *  /_/\_\   |_|   |___/  |___/
++ *
++ * Portions Copyright (c), Huawei Gauss XuanYuan Database Kernel Team (C) 2019, China
++ *
++ * IDENTIFICATION
++ *        ${XuanYuan_Home}/Code/src/cm/etcdapi/clientv3/etcd_client_proxy.go
++ *
++ * ---------------------------------------------------------------------------------------
++ */
++package main
++
++/*
++#include <stdio.h>
++#include <string.h>
++#include <stdint.h>
++#include <stdbool.h>
++#include <stdlib.h>
++
++typedef struct _EtcdGetOption {
++    bool recursive;
++    bool sort;
++    bool quorum;
++} EtcdGetOption;
++
++typedef struct _EtcdDeleteOption {
++    char *prev_value;
++    uint64_t prev_index;
++    bool recursive;
++    bool dir;
++} EtcdDeleteOption;
++
++typedef struct _EtcdSetOption {
++    char *prev_value;
++    uint64_t prev_index;
++    int64_t ttl;
++    char * prev_exist;
++    bool refresh;
++    bool dir;
++    bool no_value_on_success;
++} EtcdSetOption;
++
++typedef struct _EtcdServer {
++    const char* listen_ips;
++    uint32_t listen_ports;
++} EtcdServer;
++
++typedef struct _EtcdTlsAuth {
++    const char* etcd_client_ca_path;
++    const char* etcd_client_crt_path;
++    const char* etcd_client_key_path;
++} EtcdTlsAuth;
++*/
++import "C"
++import (
++	"fmt"
++	"strconv"
++	"sync"
++)
++
++func newDefaultClient() EtcdClient {
++	return &EtcdClientV3{}
++}
++
++/* EtcdClient defines the interface of etcdclint; */
++type EtcdClient interface {
++	/* dialTimeOut : unit is Millisecond. */
++	/* requestTimeOut: unit is Millisecond. */
++	Open(endpoints []string, ca string, cert string, key string, dialTimeOut int, requestTimeOut int) (EtcdClient, error)
++	Reopen(force bool) error
++	Close() error
++	Put(key, value, preValue string, leaseID int64) error
++	Get(key string, consensus bool) (value string, err error)
++	Delete(key string) error
++	Healthy(member string) (healthState string, err error)
++	State(member string) (isLeader bool, err error)
++}
++
++type clientConfig struct {
++	servers        []string
++	caPath         string
++	crtPath        string
++	keyPath        string
++	dialTimeout    int
++	requestTimeout int
++}
++
++/* --------------------[start]session manager ---------------------- */
++type sessions struct {
++	clients map[int]EtcdClient
++	configs map[int]clientConfig
++	nextID  int
++	mu      sync.Mutex
++}
++
++/* sessionMgr is a set of etcd client instance. */
++/* go memory can't be pass to C environment. */
++/* so keep the instance memory in go environment. */
++var sessionMgr *sessions
++
++/* will call automatically. */
++func init() {
++	sessionMgr = &sessions{
++		clients: make(map[int]EtcdClient),
++		configs: make(map[int]clientConfig),
++		nextID:  1, /* Session id start from 1; */
++	}
++}
++
++func (mgr *sessions) add(config clientConfig) int {
++	mgr.mu.Lock()
++	defer mgr.mu.Unlock()
++	/* Begin from 1. */
++	sessionID := mgr.nextID
++	mgr.nextID++
++	mgr.configs[sessionID] = config
++	return sessionID
++}
++
++func (mgr *sessions) del(sessionID int) error {
++	mgr.mu.Lock()
++	defer mgr.mu.Unlock()
++	_, ok := mgr.configs[sessionID]
++	if ok == false {
++		return fmt.Errorf("etcd session id [%v] doesn't exist , del failed", sessionID)
++	}
++
++	delete(mgr.configs, sessionID)
++
++	var c EtcdClient
++	c, ok = mgr.clients[sessionID]
++	if ok == true {
++		delete(mgr.clients, sessionID)
++		return c.Close()
++	}
++	return nil
++}
++
++func (mgr *sessions) realOpen(sessionID int) (EtcdClient, error) {
++	config, ok := mgr.configs[sessionID]
++	if ok == false {
++		return nil, fmt.Errorf("The session id %d does not exist", sessionID)
++	}
++
++	client, err := newDefaultClient().Open(config.servers, config.caPath, config.crtPath, config.keyPath,
++		config.dialTimeout, config.requestTimeout)
++
++	if err != nil {
++		return nil, err
++	}
++	mgr.clients[sessionID] = client
++	return client, err
++}
++
++func (mgr *sessions) get(sessionID int) (EtcdClient, error) {
++	mgr.mu.Lock()
++	defer mgr.mu.Unlock()
++	session, ok := mgr.clients[sessionID]
++	if ok == true {
++		err := session.Reopen(false)
++		if err != nil {
++			return nil, err
++		}
++		return session, nil
++	}
++
++	return mgr.realOpen(sessionID)
++}
++
++/* --------------------[end]session manager   ---------------------- */
++/* --------------------[start]interface for c caller --------------- */
++
++/* EtcdOpen only creates the config of the client and return the session ID. */
++/* because the etcd may be started after the session create. */
++//export EtcdOpen
++func EtcdOpen(serverList []C.EtcdServer, tlsPath *C.EtcdTlsAuth,
++	dialTimeout int, requestTimeout int) (clientID C.int) {
++	var servers []string
++	var caPath string
++	var crtPath string
++	var keyPath string
++
++	if tlsPath != nil && (tlsPath.etcd_client_ca_path != nil &&
++		tlsPath.etcd_client_crt_path != nil && tlsPath.etcd_client_key_path != nil) {
++		for _, url := range serverList {
++			servers = append(servers,
++				fmt.Sprintf("https://%s:%s", C.GoString(url.listen_ips), strconv.Itoa(int(url.listen_ports))))
++		}
++		caPath = C.GoString((*tlsPath).etcd_client_ca_path)
++		crtPath = C.GoString((*tlsPath).etcd_client_crt_path)
++		keyPath = C.GoString((*tlsPath).etcd_client_key_path)
++	} else {
++		for _, url := range serverList {
++			servers = append(servers,
++				fmt.Sprintf("http://%s:%s", C.GoString(url.listen_ips), strconv.Itoa(int(url.listen_ports))))
++		}
++	}
++
++	config := clientConfig{
++		servers,
++		caPath,
++		crtPath,
++		keyPath,
++		dialTimeout,
++		requestTimeout,
++	}
++
++	id := sessionMgr.add(config)
++	return C.int(id)
++}
++
++/* EtcdClose close the etcd client and remove the handler from session manager. */
++//export EtcdClose
++func EtcdClose(id int) *C.char {
++	err := sessionMgr.del(id)
++	if err != nil {
++		return C.CString(err.Error())
++	}
++	return nil
++}
++
++/* EtcdPut set the value of the key. If the prevValue in the EtcdSetOption is defined. */
++/* the etcd which do a check. If the value now stored in etcd is not equal to the prevValue. */
++/* the put action will be failed. */
++//export EtcdPut
++func EtcdPut(id int, key *C.char, value *C.char, option *C.EtcdSetOption) (cError *C.char) {
++
++	client, err := sessionMgr.get(id)
++	if err != nil {
++		return C.CString(err.Error())
++	}
++	var _key = C.GoString(key)
++	var _value = C.GoString(value)
++	var _prevValue = C.GoString(option.prev_value)
++	err = client.Put(_key, _value, _prevValue, 0)
++
++	if err != nil {
++		client.Reopen(true)
++		return C.CString(err.Error())
++	}
++	return nil
++}
++
++/* EtcdGet fetch the value of the key. Will be return nil if there have an error. */
++//export EtcdGet
++func EtcdGet(id int, key *C.char, option *C.EtcdGetOption) (value *C.char, cError *C.char) {
++	client, err := sessionMgr.get(id)
++	if err != nil {
++		return nil, C.CString(err.Error())
++	}
++
++	var v string
++	v, err = client.Get(C.GoString(key), bool(option.quorum))
++	if err != nil {
++		client.Reopen(true)
++		return nil, C.CString(err.Error())
++	}
++
++	return C.CString(v), nil
++}
++
++/* EtcdDelete deletes the value of the key. Now it is not support dir option. */
++//export EtcdDelete
++func EtcdDelete(id int, key *C.char, option *C.EtcdDeleteOption) (cError *C.char) {
++	client, err := sessionMgr.get(id)
++	if err != nil {
++		return C.CString(err.Error())
++	}
++
++	err = client.Delete(C.GoString(key))
++	if err != nil {
++		client.Reopen(true)
++		return C.CString(err.Error())
++	}
++
++	return nil
++}
++
++/* EtcdClusterHealth fetchs the healthy state of the node which name is memberName. */
++/* It will return the cluster healthy state if the memberName is nil. */
++//export EtcdClusterHealth
++func EtcdClusterHealth(id int, memberName *C.char) (healthStr *C.char, cError *C.char) {
++	client, err := sessionMgr.get(id)
++	if err != nil {
++		return nil, C.CString(err.Error())
++	}
++
++	var hs string
++	hs, err = client.Healthy(C.GoString(memberName))
++	if err != nil {
++		return nil, C.CString(err.Error())
++	}
++
++	return C.CString(hs), nil
++}
++
++/* EtcdServerState checks the leadership of the node which name is memberName. */
++//export EtcdServerState
++func EtcdServerState(id int, memberName *C.char) (isLeader C.bool, cError *C.char) {
++	client, err := sessionMgr.get(id)
++	if err != nil {
++		return false, C.CString(err.Error())
++	}
++
++	var leader bool
++	leader, err = client.State(C.GoString(memberName))
++	if err != nil {
++		client.Reopen(true)
++		return false, C.CString(err.Error())
++	}
++
++	return C.bool(leader), nil
++}
++
++/* --------------------[end]interface for c caller   --------------- */
++
++/* main is used for go test. */
++func main() {
++}
+diff -Nur etcd-3.3.23-ciper/etcdclient/etcd_clientv3.go etcd-3.3.23/etcdclient/etcd_clientv3.go
+--- etcd-3.3.23-ciper/etcdclient/etcd_clientv3.go	1969-12-31 19:00:00.000000000 -0500
++++ etcd-3.3.23/etcdclient/etcd_clientv3.go	2020-11-23 14:55:18.348940518 -0500
+@@ -0,0 +1,458 @@
++/*---------------------------------------------------------------------------------------
++ *
++ *      etcd_clientv3.go
++ *      The etcd go clint v3 adapter layer.
++ *
++ *  __  __ __   __  ___    ___
++ *  \ \/ / \ \ / / |   \  | _ )
++ *   >  <   \ V /  | |) | | _ \
++ *  /_/\_\   |_|   |___/  |___/
++ *
++ * Portions Copyright (c), Huawei Gauss XuanYuan Database Kernel Team (C) 2019, China
++ *
++ * IDENTIFICATION
++ *        ${XuanYuan_Home}/Code/src/cm/etcdapi/clientv3/etcd_clientv3.go
++ *
++ * ---------------------------------------------------------------------------------------
++ */
++package main
++
++import (
++	"context"
++	"crypto/tls"
++	"errors"
++	"fmt"
++	"sync"
++	"time"
++	"github.com/coreos/etcd/clientv3"
++	"github.com/coreos/etcd/pkg/transport"
++	"go.uber.org/zap"
++	"go.uber.org/zap/zapcore"
++)
++
++func iLog(level string, info string) {
++	t := time.Now()
++	fmt.Printf("%d-%02d-%02d %02d:%02d:%02d [%s] [ETCD GO Client] %s\n", t.Year(), t.Month(), t.Day(),
++		t.Hour(), t.Minute(), t.Second(), level, info)
++}
++
++// EtcdClientV3 stores the etcd v3 client handle and config infos.
++type EtcdClientV3 struct {
++	client         *clientv3.Client
++	caPath         string
++	crtPath        string
++	keyPath        string
++	endpoints      []string
++	requestTimeOut int
++	dialTimeOut    int
++	isTLSConn      bool
++	rwmu           sync.RWMutex
++}
++
++// Discard the client side log.
++func (client *EtcdClientV3) newLoggerConfig() *zap.Config {
++	return &zap.Config{
++		Level: zap.NewAtomicLevelAt(zapcore.ErrorLevel),
++
++		Development: false,
++
++		Encoding: "json",
++		EncoderConfig: zap.NewProductionEncoderConfig(),
++
++		// Use "/dev/null" to discard all
++		OutputPaths:      []string{"/dev/null"},
++		ErrorOutputPaths: []string{"/dev/null"},
++	}
++}
++
++func (client *EtcdClientV3) newETCDClient(endpoints []string) (*clientv3.Client, error) {
++	var cli *clientv3.Client
++	var err error
++
++	if client.isTLSConn {
++		// construct client with tls info
++		tlsInfo := transport.TLSInfo{
++			CertFile:      client.crtPath,
++			KeyFile:       client.keyPath,
++			TrustedCAFile: client.caPath,
++		}
++		var tlsConfig *tls.Config
++		tlsConfig, err = tlsInfo.ClientConfig()
++		if err != nil {
++			// failed to make tls config,maybe the config key file is not valid
++			return nil, err
++		}
++		cli, err = clientv3.New(clientv3.Config{
++			Endpoints:   endpoints,
++			DialTimeout: time.Duration(client.dialTimeOut) * time.Millisecond,
++			TLS:         tlsConfig,
++			LogConfig:   client.newLoggerConfig(),
++		})
++	} else {
++		// construct client without tls
++		cli, err = clientv3.New(clientv3.Config{
++			Endpoints:   endpoints,
++			DialTimeout: time.Duration(client.dialTimeOut) * time.Millisecond,
++			LogConfig:   client.newLoggerConfig(),
++		})
++	}
++
++	if err != nil && cli != nil {
++		// release connection if exist
++		cli.Close()
++		cli = nil
++	}
++
++	return cli, err
++}
++
++// Open creates the client instance.
++func (client *EtcdClientV3) Open(endpoints []string, ca string, cert string,
++	key string, dialTimeOut int, requestTimeOut int) (EtcdClient, error) {
++	var cli *clientv3.Client
++	var err error
++
++	client.client = nil
++	client.caPath = ca
++	client.crtPath = cert
++	client.keyPath = key
++	client.endpoints = endpoints
++	client.requestTimeOut = requestTimeOut
++	client.dialTimeOut = dialTimeOut
++	if ca != "" && cert != "" && key != "" {
++		client.isTLSConn = true
++	} else {
++		client.isTLSConn = false
++	}
++
++	cli, err = client.newETCDClient(endpoints)
++	if err != nil {
++		return nil, err
++	}
++	client.client = cli
++	return client, nil
++}
++
++// Close the client instance.
++func (client *EtcdClientV3) Close() error {
++	if client.client != nil {
++		return client.client.Close()
++	}
++	return errors.New("the client doesn't exist, error while close")
++}
++
++// Reopen its internal clientv3. Close it first if force is true.
++func (client *EtcdClientV3) Reopen(force bool) error {
++	var cli *clientv3.Client
++	var err error
++
++	client.rwmu.Lock()
++	defer client.rwmu.Unlock()
++	if client.client != nil {
++		if force {
++			client.client.Close()
++			client.client = nil
++		} else {
++			return nil
++		}
++	}
++	cli, err = client.newETCDClient(client.endpoints)
++	if err == nil {
++		client.client = cli
++	}
++
++	return err
++}
++
++// PutDirect sets the value of the key.
++// lease is not support yet.
++func (client *EtcdClientV3) PutDirect(key string, value string, leaseID int64) error {
++	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(client.requestTimeOut)*time.Millisecond)
++	defer cancel()
++	client.rwmu.RLock()
++	defer client.rwmu.RUnlock()
++	if client.client == nil {
++		return fmt.Errorf("concurrent problem, please try again");
++	}
++	_, err := client.client.Put(ctx, key, value)
++	return err
++}
++
++// Put sets the value of the key.
++// lease is not support yet.
++func (client *EtcdClientV3) Put(key string, value string, preValue string, leaseID int64) error {
++	if preValue == "" {
++		return client.PutDirect(key, value, leaseID)
++	}
++	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(client.requestTimeOut)*time.Millisecond)
++	defer cancel()
++	res, err := func() (*clientv3.TxnResponse, error) {
++			client.rwmu.RLock()
++			defer client.rwmu.RUnlock()
++			if client.client == nil {
++				return nil, fmt.Errorf("concurrent problem, please try again");
++			}
++			return client.client.Txn(ctx).If(clientv3.Compare(clientv3.Value(key), "=", preValue)).
++				Then(clientv3.OpPut(key, value)).Commit()
++		}()
++	if err != nil {
++		return err
++	}
++
++	if !res.Succeeded {
++		return fmt.Errorf(
++			"A newer revision exists.failed to put key=[%s], value=[%s],preValue=[%s]", key, value, preValue)
++	}
++
++	return nil
++}
++
++// Get gets the value of the key. The etcd server will return a consensus values if the
++// consensus option is set.
++func (client *EtcdClientV3) Get(key string, consensus bool) (value string, err error) {
++	var opts []clientv3.OpOption
++	if !consensus {
++		opts = append(opts, clientv3.WithSerializable())
++	}
++	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(client.requestTimeOut)*time.Millisecond)
++	defer cancel()
++	respGet, err := func() (*clientv3.GetResponse, error) {
++			client.rwmu.RLock()
++			defer client.rwmu.RUnlock()
++			if client.client == nil {
++				return nil, fmt.Errorf("concurrent problem, please try again");
++			}
++			return client.client.Get(ctx, key, opts...)
++		}()
++	if err != nil {
++		return "", err
++	}
++	var result string
++	for _, ev := range respGet.Kvs {
++		if key == string(ev.Key) {
++			result = string(ev.Value)
++			break
++		}
++	}
++	if len(result) > 0 {
++		return result, nil
++	}
++	return "", fmt.Errorf("can't find the key:%s", key)
++}
++
++// Delete deletes the value of the key. Now only support removes single key.
++func (client *EtcdClientV3) Delete(key string) error {
++	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(client.requestTimeOut)*time.Millisecond)
++	defer cancel()
++	client.rwmu.RLock()
++	defer client.rwmu.RUnlock()
++	if client.client == nil {
++		return fmt.Errorf("concurrent problem, please try again");
++	}
++	_, err := client.client.Delete(ctx, key)
++	return err
++}
++
++// getAllMemberHealth checks the health status of the entire etcd cluster and write health_member.
++func (client *EtcdClientV3) getAllMemberHealth(ms []*clientv3.Member) (string, error) {
++	var state string
++	healthNumbers := 0
++	errorStr := ""
++	for _, m := range ms {
++		if len(m.ClientURLs) == 0 {
++			errorStr += fmt.Sprintf(fmt.Sprintf(
++				"etcd member[%s] %s is unreachable: no available published client urls\n", m.Name, m.ID))
++			continue
++		}
++
++		isHealth, errorInfo := client.getMemberHealth(m.ClientURLs)
++		if isHealth {
++			healthNumbers++
++		} else {
++			errorStr += fmt.Sprintf(
++				"etcd member %s is unhealthy: got unhealthy result from %s, errorInfo:%s\n",
++				m.ID, m.ClientURLs, errorInfo)
++		}
++		if errorInfo != nil {
++			errorStr += errorInfo.Error()
++		}
++	}
++
++	switch healthNumbers {
++	case len(ms):
++		state = "healthy"
++	case 0:
++		state = "unavailable"
++	default:
++		state = "degraded"
++	}
++
++	if errorStr != "" {
++		iLog("info", errorStr)
++	}
++
++	return state, nil
++}
++
++/*
++getOneMemberHealth checks the health status of the corresponding etcd node and store the
++health status into health_member.
++ */
++func (client *EtcdClientV3) getOneMemberHealth(ms []*clientv3.Member, memberName string) (string, error) {
++	var state string
++	for _, m := range ms {
++		if len(m.ClientURLs) == 0 {
++			continue
++		}
++		/* find the request member by name first */
++		if m.Name == memberName {
++			isHealth, _ := client.getMemberHealth(m.ClientURLs)
++			if isHealth {
++				state = "healthy"
++			} else {
++				state = "unhealthy"
++			}
++			return state, nil
++		}
++	}
++
++	return "", fmt.Errorf("The member %s queried does not exist", memberName)
++}
++
++/* getMemberHealth Check the health status of one endpoint for each member, there maybe many client urls. */
++func (client *EtcdClientV3) getMemberHealth(urls []string) (bool, error) {
++	/* first construct a new clientv3 client. */
++	var cli *clientv3.Client
++	var err error
++
++	cli, err = client.newETCDClient(urls)
++	if err != nil {
++		return false, err
++	}
++	defer cli.Close() /* make sure close the client after end of function */
++
++	/* second try use get to test whether it is ok or not */
++	/*
++	there is a litter trick: as key:"health" may exist or not, in v3,
++	no matter if it exist or not, it won't return any error info as long as the cluster is ok
++	*/
++	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(client.requestTimeOut)*time.Millisecond)
++	defer cancel()
++	_, err = cli.Get(ctx, "health")
++
++	if err == nil {
++		// the member is health
++		return true, nil
++	}
++	return false, err
++}
++
++/*
++Healthy checks the healthy state of the node which is defined by member.
++It will checks the cluster state if the member is not set.
++*/
++func (client *EtcdClientV3) Healthy(member string) (string, error) {
++	/*
++	first: we get all members to get the all the client url,
++	as memberlist will loop each endpoint, so, we set timeout more.
++	 */
++	endpointSize := len(client.endpoints)
++	ctx, cancel := context.WithTimeout(context.Background(),
++		time.Duration(client.requestTimeOut*endpointSize)*time.Millisecond)
++	defer cancel()
++	resp, err := func() (*clientv3.MemberListResponse, error) {
++			client.rwmu.RLock()
++			defer client.rwmu.RUnlock()
++			if client.client == nil {
++				return nil, fmt.Errorf("concurrent problem, please try again");
++			}
++			return client.client.MemberList(ctx)
++		}()
++	if err != nil {
++		return "", err
++	}
++	memberSize := len(resp.Members)
++
++	allMembers := make([]*clientv3.Member, memberSize)
++	memberIndex := 0
++	/*
++	parse (type []*etcdserverpb.Member) to type []*clientv3.Member,
++	as we can't import etcdserverpb.Member directly.
++	 */
++	for _, m := range resp.Members {
++		v3Member := &clientv3.Member{}
++		v3Member.ID = m.ID
++		v3Member.Name = m.Name
++		v3Member.PeerURLs = m.PeerURLs
++		v3Member.ClientURLs = m.ClientURLs
++		allMembers[memberIndex] = v3Member
++		memberIndex++
++	}
++
++	/* third: we can query each by url + /health. */
++	if member == "" {
++		/* return the cluster health state. */
++		return client.getAllMemberHealth(allMembers)
++	}
++	/* return the member health state. */
++	return client.getOneMemberHealth(allMembers, member)
++
++}
++
++/* State checks the leadership of the node. Return true if it is the leader. */
++func (client *EtcdClientV3) State(member string) (bool, error) {
++	var leaderID uint64 = 0
++	var errorMsg string
++	endpointSize := len(client.endpoints)
++	/*
++	first get LeadId from status api,
++	refer:<https://godoc.org/github.com/coreos/etcd/clientv3#example-Maintenance--Status>
++	 */
++	for _, endpoint := range client.endpoints {
++		ctx, cancel := context.WithTimeout(context.Background(),
++			time.Duration(client.requestTimeOut*endpointSize)*time.Millisecond)
++		resp, err := func() (*clientv3.StatusResponse, error) {
++				client.rwmu.RLock()
++				defer client.rwmu.RUnlock()
++				if client.client == nil {
++					return nil, fmt.Errorf("concurrent problem, please try again");
++				}
++				return client.client.Status(ctx, endpoint)
++			}()
++		defer cancel()
++		if err != nil {
++			errorMsg += fmt.Sprintf("failed to endpont:%s, error:%s", endpoint, err)
++			continue
++		}
++		/* get leader. */
++		leaderID = resp.Leader
++		/* once we got the leaderId , then we can exit the loop. */
++		break
++	}
++	if leaderID == 0 {
++		/* means: we can't find the leadId */
++		return false, errors.New(errorMsg)
++	}
++	/* second , foreach member to match the member Name. */
++	ctxMember, cancelMember := context.WithTimeout(context.Background(),
++		time.Duration(client.requestTimeOut)*time.Millisecond)
++	defer cancelMember()
++	resp, err := func() (*clientv3.MemberListResponse, error) {
++			client.rwmu.RLock()
++			defer client.rwmu.RUnlock()
++			if client.client == nil {
++				return nil, fmt.Errorf("concurrent problem, please try again");
++			}
++			return client.client.MemberList(ctxMember)
++		}()
++	if err != nil {
++		return false, err
++	}
++	for _, m := range resp.Members {
++		if m.ID == leaderID && m.Name == member {
++			return true, nil
++		}
++	}
++
++	return false, nil
++}
