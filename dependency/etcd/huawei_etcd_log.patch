@@ -1,0 +1,14 @@
+diff -Nur etcd-3.3.23-aes/embed/config.go etcd-3.3.23/embed/config.go
+--- etcd-3.3.23-aes/embed/config.go	2020-09-04 17:55:31.288623455 +0800
++++ etcd-3.3.23/embed/config.go	2020-09-04 18:05:18.404455455 +0800
+@@ -302,7 +302,9 @@
+ 		ips, dns := cert.IPAddresses, cert.DNSNames
+ 		plog.Infof("rejected connection from %q (error %q, ServerName %q, IPAddresses %q, DNSNames %q)", remoteAddr, err.Error(), serverName, ips, dns)
+ 	} else {
+-		plog.Infof("rejected connection from %q (error %q, ServerName %q)", remoteAddr, err.Error(), serverName)
++		if (err.Error() != "EOF" || serverName != "") {
++			plog.Infof("rejected connection from %q (error %q, ServerName %q)", remoteAddr, err.Error(), serverName)
++		}
+ 	}
+ }
+ 

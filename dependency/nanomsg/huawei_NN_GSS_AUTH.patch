@@ -1,0 +1,119 @@
+diff -uprN nanomsg-1.1.5/CMakeLists.txt nanomsg-1.1.5-NN_GSS_AUTH/CMakeLists.txt
+--- nanomsg-1.1.5/CMakeLists.txt	2018-10-15 21:50:59.000000000 +0800
++++ nanomsg-1.1.5-NN_GSS_AUTH/CMakeLists.txt	2020-06-13 20:41:17.110827029 +0800
+@@ -103,7 +103,8 @@ option (NN_ENABLE_GETADDRINFO_A "Enable/
+ option (NN_TESTS "Build and run nanomsg tests" ON)
+ option (NN_TOOLS "Build nanomsg tools" ON)
+ option (NN_ENABLE_NANOCAT "Enable building nanocat utility." ${NN_TOOLS})
+-set (NN_MAX_SOCKETS 512 CACHE STRING "max number of nanomsg sockets that can be created")
++option (NN_GSS_AUTH "Enable GSS authority for server and client." OFF)
++set (NN_MAX_SOCKETS 65536 CACHE STRING "max number of nanomsg sockets that can be created")
+ 
+ #  Platform checks.
+ 
+@@ -130,6 +131,11 @@ if (NN_ENABLE_COVERAGE)
+     endif()
+ endif()
+ 
++if (NN_GSS_AUTH)
++    add_definitions (-DNN_GSS_AUTH)
++    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fstack-protector-all -Wl,-z,relro,-z,now -Wl,-z,noexecstack -fPIC -Wl,--unresolved-symbols=ignore-in-object-files")
++endif ()
++
+ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${NN_WARN_FLAGS} ${NN_COVERAGE_FLAGS}")
+ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${NN_WARN_FLAGS} ${NN_COVERAGE_FLAGS}")
+ 
+@@ -228,7 +234,9 @@ else ()
+     add_definitions (-D_THREAD_SAFE)
+     add_definitions (-D_POSIX_PTHREAD_SEMANTICS)
+ 
++if (NOT NN_GSS_AUTH)
+     nn_check_func (gethrtime NN_HAVE_GETHRTIME)
++endif ()
+     nn_check_func (socketpair NN_HAVE_SOCKETPAIR)
+     nn_check_func (eventfd NN_HAVE_EVENTFD)
+     nn_check_func (pipe NN_HAVE_PIPE)
+diff -uprN nanomsg-1.1.5/src/aio/usock_posix.inc nanomsg-1.1.5-NN_GSS_AUTH/src/aio/usock_posix.inc
+--- nanomsg-1.1.5/src/aio/usock_posix.inc	2018-10-15 21:50:59.000000000 +0800
++++ nanomsg-1.1.5-NN_GSS_AUTH/src/aio/usock_posix.inc	2020-06-13 16:10:48.000000000 +0800
+@@ -33,6 +33,7 @@
+ #include <unistd.h>
+ #include <fcntl.h>
+ #include <sys/uio.h>
++#include <stdbool.h>
+ 
+ #define NN_USOCK_STATE_IDLE 1
+ #define NN_USOCK_STATE_STARTING 2
+@@ -77,6 +78,11 @@ static void nn_usock_handler (struct nn_
+ static void nn_usock_shutdown (struct nn_fsm *self, int src, int type,
+     void *srcptr);
+ 
++#ifdef NN_GSS_AUTH
++extern bool nn_gss_server_auth(int sock);
++extern bool nn_gss_client_auth(int sock);
++#endif
++
+ void nn_usock_init (struct nn_usock *self, int src, struct nn_fsm *owner)
+ {
+     /*  Initalise the state machine. */
+@@ -347,6 +353,14 @@ void nn_usock_accept (struct nn_usock *s
+     s = accept (listener->s, NULL, NULL);
+ #endif
+ 
++#ifdef NN_GSS_AUTH
++    if (s >= 0 && !nn_gss_server_auth(s)) {
++        nn_closefd (s);
++        s = -1;
++        errno = ENOMEM;
++    }
++#endif
++
+     /*  Immediate success. */
+     if (nn_fast (s >= 0)) {
+         /*  Disassociate the listener socket from the accepted
+@@ -406,6 +420,15 @@ void nn_usock_connect (struct nn_usock *
+     /* Do the connect itself. */
+     rc = connect (self->s, addr, (socklen_t) addrlen);
+ 
++#ifdef NN_GSS_AUTH
++    if (!nn_gss_client_auth(self->s)) {
++        nn_closefd (self->s);
++        self->s = -1;
++        errno = ECONNREFUSED;
++        rc = -1;
++    }
++#endif
++
+     /* Immediate success. */
+     if (nn_fast (rc == 0)) {
+         nn_fsm_action (&self->fsm, NN_USOCK_ACTION_DONE);
+@@ -920,6 +943,14 @@ error:
+                 s = accept (usock->s, NULL, NULL);
+ #endif
+ 
++#ifdef NN_GSS_AUTH
++                if (s >= 0 && !nn_gss_server_auth(s)) {
++                    nn_closefd (s);
++                    s = -1;
++                    errno = ENOMEM;
++                }
++#endif
++
+                 /*  ECONNABORTED is an valid error. New connection was closed
+                     by the peer before we were able to accept it. If it happens
+                     do nothing and wait for next incoming connection. */
+diff -uprN nanomsg-1.1.5/src/transports/utils/streamhdr.c nanomsg-1.1.5-NN_GSS_AUTH/src/transports/utils/streamhdr.c
+--- nanomsg-1.1.5/src/transports/utils/streamhdr.c	2018-10-15 21:50:59.000000000 +0800
++++ nanomsg-1.1.5-NN_GSS_AUTH/src/transports/utils/streamhdr.c	2020-06-13 19:30:04.000000000 +0800
+@@ -155,7 +155,11 @@ static void nn_streamhdr_handler (struct
+         case NN_FSM_ACTION:
+             switch (type) {
+             case NN_FSM_START:
++#ifdef NN_GSS_AUTH
++                nn_timer_start (&streamhdr->timer, 15000);
++#else
+                 nn_timer_start (&streamhdr->timer, 1000);
++#endif
+                 iovec.iov_base = streamhdr->protohdr;
+                 iovec.iov_len = sizeof (streamhdr->protohdr);
+                 nn_usock_send (streamhdr->usock, &iovec, 1);

@@ -1,0 +1,15 @@
+diff -Nur etcd-3.3.23-cipher/pkg/transport/listener.go etcd-3.3.23/pkg/transport/listener.go
+--- etcd-3.3.23-cipher/pkg/transport/listener.go	2020-09-04 17:51:42.968623455 +0800
++++ etcd-3.3.23/pkg/transport/listener.go	2020-09-04 17:56:46.830623455 +0800
+@@ -188,6 +188,11 @@
+ 	cfg := &tls.Config{
+ 		MinVersion: tls.VersionTLS12,
+ 		ServerName: info.ServerName,
++		CipherSuites: []uint16{
++			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
++			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
++			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
++			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384},
+ 	}
+ 
+ 	if len(info.CipherSuites) > 0 {

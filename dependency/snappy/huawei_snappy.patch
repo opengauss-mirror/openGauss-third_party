@@ -1,0 +1,10 @@
+--- snappy.cc	2020-01-15 02:58:53.000000000 +0800
++++ snappy.cc1	2020-11-20 10:58:40.336400140 +0800
+@@ -73,6 +73,7 @@
+ #include <algorithm>
+ #include <string>
+ #include <vector>
++#define _GLIBCXX_USE_CXX11_ABI=0
+ 
+ namespace snappy {
+ 

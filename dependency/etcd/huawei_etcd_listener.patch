@@ -1,0 +1,26 @@
+diff -Nur etcd-listener/embed/etcd.go etcd-3.3.23/embed/etcd.go
+--- etcd-listener/embed/etcd.go	2020-09-04 17:56:05.333623455 +0800
++++ etcd-3.3.23/embed/etcd.go	2020-09-04 18:02:47.816455455 +0800
+@@ -432,7 +432,7 @@
+ 			continue
+ 		}
+ 
+-		if sctx.l, err = net.Listen(proto, addr); err != nil {
++		if sctx.l, err = transport.NewTimeoutListener(addr, proto, nil, time.Minute, time.Minute); err != nil {
+ 			return nil, err
+ 		}
+ 		// net.Listener will rewrite ipv4 0.0.0.0 to ipv6 [::], breaking
+diff -Nur etcd-listener/pkg/transport/timeout_listener.go etcd-3.3.23/pkg/transport/timeout_listener.go
+--- etcd-listener/pkg/transport/timeout_listener.go	2020-09-04 17:56:05.492623455 +0800
++++ etcd-3.3.23/pkg/transport/timeout_listener.go	2020-09-04 18:02:07.748455455 +0800
+@@ -32,6 +32,10 @@
+ 		rdtimeoutd: rdtimeoutd,
+ 		wtimeoutd:  wtimeoutd,
+ 	}
++	if tlsinfo == nil {
++		return ln, nil
++	}
++
+ 	if ln, err = wrapTLS(addr, scheme, tlsinfo, ln); err != nil {
+ 		return nil, err
+ 	}
