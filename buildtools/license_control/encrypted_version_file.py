@@ -173,7 +173,7 @@ def encrypted_feature_info(disabled_features, product_version, feature_file):
     header_data = struct.pack(header_format, crc32_code, len(base64_data), len(data))
 
     # Save the byte stream data to the specified file.
-    with open(feature_file, "w") as fp:
+    with open(feature_file, "wb") as fp:
         fp.write(header_data)
         fp.write(base64_data)
 

@@ -16,7 +16,7 @@ import os
 import subprocess
 import sys
 import argparse
-import commands
+import subprocess
 
 #--------------------------------------------------------#
 # open source software build operator                    #
@@ -62,6 +62,10 @@ class OPOperator():
         elif platform_str == 'euleros2.0_sp8_aarch64':
             binary_list.append(platform_str)
         elif platform_str == 'openeuler_aarch64':
+            binary_list.append(platform_str)
+        elif platform_str == 'openeuler_x86_64':
+            binary_list.append(platform_str)
+        elif platform_str == 'kylin_aarch64':
             binary_list.append(platform_str)
         else:
             print("[ERROR] Not supported platform type")
@@ -122,7 +126,7 @@ class OPOperator():
         ret = self.exe_cmd(unzip_cmd)
         source_code_path = self.folder_parser()
         get_cpu_cmd = 'grep -w processor /proc/cpuinfo|wc -l'
-        status, output = commands.getstatusoutput(get_cpu_cmd)
+        status, output = subprocess.getstatusoutput(get_cpu_cmd)
         cpu_num = output.strip()
         # compile source code type
         for c_type in self.compiletype:
@@ -203,12 +207,12 @@ class OPOperator():
             # move source code type
             for c_type in self.compiletype:
                 if c_type == 'comm':
-                    rm_cmd = 'rm -rf %s/comm/*; mkdir %s/comm' % (install_path, install_path)
+                    rm_cmd = 'rm -rf %s/comm; mkdir %s/comm' % (install_path, install_path)
                     self.exe_cmd(rm_cmd)
                     cp_cmd1 = 'cp -r %s/install_comm_dist/* %s/comm/' % (self.local_dir, install_path)
                     self.exe_cmd(cp_cmd1)
                 elif c_type == 'llt':
-                    rm_cmd = 'rm -rf %s/llt/*; mkdir %s/llt' % (install_path, install_path)
+                    rm_cmd = 'rm -rf %s/llt; mkdir %s/llt' % (install_path, install_path)
                     self.exe_cmd(rm_cmd)
                     cp_cmd1 = 'cp -r %s/install_llt_dist/* %s/llt/' % (self.local_dir, install_path)
                     self.exe_cmd(cp_cmd1)
@@ -266,6 +270,8 @@ def parse_args():
 #--------------------------------------------------------#
 
 if __name__ == '__main__':
+    tempath = os.path.dirname(os.path.realpath(__file__))
+    status,output = subprocess.getstatusoutput("rm -rf " + tempath + "/install_*")
     args = parse_args()
     Operator = OPOperator(mode = args.mode, filename = args.filename, compiletype = args.compiletype)
     Operator.build_mode()

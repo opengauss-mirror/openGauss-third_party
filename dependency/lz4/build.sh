@@ -32,6 +32,7 @@ source "${WORK_PATH}/clean_component.sh"
 #######################################################################
 function main()
 {
+    rm -rf install_*
     case "${BUILD_OPTION}" in
         build)
             build_component

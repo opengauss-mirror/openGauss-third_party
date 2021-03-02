@@ -8,7 +8,7 @@ import os
 import subprocess
 import sys
 import argparse
-import commands
+import subprocess
 
 #--------------------------------------------------------#
 # open source software build operator                    #
@@ -65,9 +65,13 @@ class OPOperator():
             binary_list.append(platform_str)
         elif platform_str == 'euleros2.0_sp8_aarch64':
             binary_list.append(platform_str)
+        elif platform_str == 'openeuler_x86_64':
+            binary_list.append(platform_str)
         elif platform_str == 'openeuler_aarch64':
             binary_list.append(platform_str)
             binary_list.append('euleros2.0_sp8_aarch64')
+        elif platform_str == 'kylin_aarch64':
+            binary_list.append(platform_str)
         else:
             print("[ERROR] Not supported platform type")
             assert False
@@ -130,7 +134,7 @@ class OPOperator():
         self.error_handler(ret)
         # get cpu core num
         get_cpu_cmd = 'grep -w processor /proc/cpuinfo|wc -l'
-        status, output = commands.getstatusoutput(get_cpu_cmd)
+        status, output = subprocess.getstatusoutput(get_cpu_cmd)
         self.error_handler(status)
         cpu_num = output.strip()
         # generate configure

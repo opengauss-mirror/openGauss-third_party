@@ -33,5 +33,5 @@ sh ./build.sh
 #sh ./build.sh
 
 # build huawei jdk
-#cd ${PLATFORM_PATH}/huaweijdk8
-#sh ./build.sh
+cd ${PLATFORM_PATH}/openjdk8
+sh ./build.sh

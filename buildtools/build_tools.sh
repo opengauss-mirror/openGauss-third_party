@@ -30,3 +30,5 @@ sh ./build.sh >> build_tools.log
 end_tm=$(date +%s%N)
 use_tm=$(echo $end_tm $start_tm | awk '{ print ($1 - $2) / 1000000000}' | xargs printf "%.2f")
 echo "[license_control] $use_tm"
+
+cp -a $(pwd)/../server_key $(pwd)/../../output/buildtools/
