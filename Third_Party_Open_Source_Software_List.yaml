@@ -198,8 +198,8 @@ rapidjson:
   cpeName: rapidjson
   version: 4b3d7c2f42142f10b888e580c515f60ca98e2ee9
   url: 'http://rapidjson.org/'
-Zstandard:
-  cpeName: Zstandard
+zstd:
+  cpeName: zstd
   version: 1.4.4
   url: 'https://github.com/facebook/zstd'
 cJSON:

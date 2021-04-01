@@ -14,7 +14,7 @@ TAR_SOURCE_FILE=cffi-1.13.2.tar.gz
 SOURCE_FILE=cffi-1.13.2
 tar zxvf $TAR_SOURCE_FILE
 cd $SOURCE_FILE
-python setup.py build
+CFLAGS="-fstack-protector-strong -Wl,-z,relro,-z,now -s" python setup.py build
 PYTHONHASHSEED=0 python setup.py install
 cp -r build/lib*/* $TARGET_PATH
 mv $TARGET_PATH/_cffi_backend.*.so  $TARGET_PATH/_cffi_backend.so

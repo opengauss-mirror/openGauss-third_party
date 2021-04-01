@@ -15,7 +15,7 @@ TAR_SOURCE_FILE=cryptography-2.9.tar.gz
 SOURCE_FILE=cryptography-2.9
 tar zxvf $TAR_SOURCE_FILE
 cd $SOURCE_FILE
-CFLAGS="-Wl,-z,relro,-z,now -s" python setup.py build_ext --inplace --library-dirs=${OPENSSL_ROOT_DIR}/lib --include-dirs=${OPENSSL_ROOT_DIR}/include
+CFLAGS="-fstack-protector-strong -Wl,-z,relro,-z,now -s" python setup.py build_ext --inplace --library-dirs=${OPENSSL_ROOT_DIR}/lib --include-dirs=${OPENSSL_ROOT_DIR}/include
 if [[ "$PLATFORM" == centos* ]]; then
     cpu_bit=$(uname -m)
     if [ X"$cpu_bit" = X"x86_64" ]; then
