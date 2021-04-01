@@ -19,7 +19,7 @@ TAR_SOURCE_FILE=bcrypt-3.1.7.tar.gz
 SOURCE_FILE=bcrypt-3.1.7
 tar zxvf $TAR_SOURCE_FILE
 cd $SOURCE_FILE
-python setup.py build
+CFLAGS="-fstack-protector-strong -Wl,-z,relro,-z,now" python setup.py build
 if [[ "$PLATFORM" == centos* ]]; then
     CPU_BIT=$(uname -m)
     if [ X"$CPU_BIT" = X"x86_64" ]; then

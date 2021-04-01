@@ -1117,7 +1117,7 @@ diff -urN code/Makefile patched/Makefile
 +LIBS = -lnuma -lpthread -lm
 +LDFLAGS =
 +
-+CXXFLAGS = -g -W -O3 -std=gnu++11 -Wextra -D_GLIBCXX_USE_CXX11_ABI=0 -fPIC -g -Werror -DNDEBUG -D_FORTIFY_SOURCE=2 -Wall -Werror -Wno-unused-parameter -Wno-unused-but-set-variable -Wno-unused-variable -Wno-unused-function -Wno-strict-aliasing  -faligned-new -Wwrite-strings -Wcast-align -Wreturn-type -Wpointer-arith -Wlogical-op -Waddress -Wsizeof-pointer-memaccess -Winit-self -fno-exceptions -fno-rtti -Wnon-virtual-dtor -Wno-missing-field-initializers
++CXXFLAGS = -g -W -O3 -std=gnu++11 -Wextra -D_GLIBCXX_USE_CXX11_ABI=0 -fPIC -g -Werror -DNDEBUG -D_FORTIFY_SOURCE=2 -Wall -Werror -Wno-unused-parameter -Wno-unused-but-set-variable -Wno-unused-variable -Wno-unused-function -Wno-strict-aliasing  -faligned-new -Wwrite-strings -Wcast-align -Wreturn-type -Wpointer-arith -Wlogical-op -Waddress -Wsizeof-pointer-memaccess -Winit-self -fno-exceptions -fno-rtti -Wnon-virtual-dtor -Wno-missing-field-initializers -fstack-protector-strong
 +
 +ifeq ($(shell uname -p),aarch64)
 +	CXXFLAGS += -march=armv8-a+crc
@@ -1132,7 +1132,7 @@ diff -urN code/Makefile patched/Makefile
 +
 +libmasstree.so: straccum.o string.o kvthread.o
 +	@rm -f $@
-+	$(CXX) -shared $^ -o $@
++	$(CXX) -Wl,-z,relro,-z,now -shared $^ -o $@
 +
 +clean:
 +	rm -f *.o libmasstree.so

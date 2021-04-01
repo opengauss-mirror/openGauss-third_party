@@ -8,7 +8,7 @@
 
 set -e
 
-python $(pwd)/../../build/pull_open_source.py "oracle_fdw"  "ORACLE_FDW_2_1_0.zip" "05833BFB"
+python $(pwd)/../../build/pull_open_source.py "oracle_fdw"  "oracle_fdw-ORACLE_FDW_2_2_0.tar.gz" "05837ULA"
 
 LOCAL_PATH=${0}
 FIRST_CHAR=$(expr substr "$LOCAL_PATH" 1 1)
